@@ -1,4 +1,4 @@
-import type { RequestStatus } from "@prisma/client";
+﻿import type { RequestStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getRequestStatusLabel, getStatusTone, getToneClasses } from "@/lib/status";
@@ -141,3 +141,4 @@ export default async function SolicitudesPage() {
     </div>
   );
 }
+

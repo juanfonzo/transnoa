@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -306,7 +306,7 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="text-sm font-semibold text-slate-900">
-                            Dia {index + 1} � {formatDayLabel(date)}
+                            Dia {index + 1} · {formatDayLabel(date)}
                           </p>
                           <span className="text-xs text-slate-500">
                             {selected.length} trabajador(es)
@@ -467,3 +467,4 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
     </>
   );
 }
+

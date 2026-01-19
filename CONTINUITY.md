@@ -1,26 +1,23 @@
 - Goal (incl. success criteria):
-  - Support per-day worker assignment with multiple concepts per day and allow creating workers from Solicitudes.
+  - Fix Vercel build failure by removing invalid UTF-8 bytes so `npm run build` succeeds.
 - Constraints/Assumptions:
   - Follow `AGENTS.md` repo rules and continuity ledger process.
-  - Must include 4 roles in demo.
-  - Demo uses role selector cookie/session, no credentials.
-  - Keep changes consistent with existing Tailwind setup; no new deps.
+  - Keep changes small; no new dependencies.
+  - Next.js App Router + Tailwind + Prisma already in use.
 - Key decisions:
-  - Store per-day plan in request payload JSON and generate day concepts + worker day counts from it.
+  - Re-encode offending source files to UTF-8 when invalid bytes are found.
 - State:
-  - Wizard and server action updated for day-based assignments; worker creation modal added.
+  - Re-encoded `src/app/solicitudes/SolicitudWizard.tsx` to UTF-8 (no BOM); scan shows no invalid UTF-8 in `src`.
 - Done:
-  - Updated Solicitud wizard with day plan step and per-day worker/concept assignments.
-  - Added createWorker server action and worker creation modal.
-  - Server action now builds worker days and day concepts from day plan.
+  - Read AGENTS and current ledger.
+  - Normalized `src/app/solicitudes/SolicitudWizard.tsx` encoding to UTF-8.
+  - Scanned `src` for invalid UTF-8 bytes (none found).
 - Now:
-  - Validate wizard flow end-to-end with new worker and day plan logic.
+  - Confirm build succeeds after encoding fix.
 - Next:
-  - Optional: expose day plan summary in Solicitudes detail view.
+  - Re-run build (or provide steps) to confirm error is resolved.
 - Open questions (UNCONFIRMED if needed):
   - None.
 - Working set (files/ids/commands):
   - src/app/solicitudes/SolicitudWizard.tsx
-  - src/app/actions/requests.ts
-  - src/app/actions/workers.ts
-  - src/app/solicitudes/WorkerCreateModal.tsx
+  - npm run build

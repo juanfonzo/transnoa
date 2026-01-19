@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { ReactNode } from "react";
 
@@ -43,3 +43,4 @@ export function Modal({ open, title, description, onClose, children }: ModalProp
     </div>
   );
 }
+

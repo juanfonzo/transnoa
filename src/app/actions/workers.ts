@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
@@ -47,3 +47,4 @@ export async function createWorker(formData: FormData): Promise<CreateWorkerResu
 
   return {};
 }
+

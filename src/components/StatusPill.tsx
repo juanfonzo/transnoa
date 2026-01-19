@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { RequestStatus } from "@prisma/client";
 import { getRequestStatusLabel, getStatusTone, getToneClasses } from "@/lib/status";
@@ -16,3 +16,4 @@ export function StatusPill({ status }: StatusPillProps) {
     </span>
   );
 }
+

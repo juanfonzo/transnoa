@@ -1,4 +1,4 @@
-import { RequestStatus } from "@prisma/client";
+﻿import { RequestStatus } from "@prisma/client";
 
 type StatusMeta = {
   label: string;
@@ -87,3 +87,4 @@ export function getToneClasses(tone: StatusMeta["tone"]) {
 
   return tones[tone] ?? tones.slate;
 }
+

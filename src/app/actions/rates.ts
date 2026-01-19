@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
@@ -152,3 +152,4 @@ export async function createRateChange(formData: FormData) {
 
   revalidatePath("/administracion");
 }
+

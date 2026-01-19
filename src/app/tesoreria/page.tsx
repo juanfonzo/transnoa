@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/format";
 import { StatusPill } from "@/components/StatusPill";
 import { TreasuryActions } from "@/app/tesoreria/TreasuryActions";
@@ -93,3 +93,4 @@ export default async function TesoreriaPage() {
     </div>
   );
 }
+

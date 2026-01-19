@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -118,3 +118,4 @@ export function WorkerCreateModal({ onCreated }: WorkerCreateModalProps) {
     </>
   );
 }
+

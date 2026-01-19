@@ -1,4 +1,4 @@
-import type { RequestStatus } from "@prisma/client";
+﻿import type { RequestStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getRequestStatusLabel, getStatusTone, getToneClasses } from "@/lib/status";
@@ -104,7 +104,7 @@ export default async function AdministracionPage() {
                   </p>
                 </div>
                 <div className="text-xs text-slate-500">
-                  {formatCurrency(Number(latestBatch.oldAmount))} →
+                  {formatCurrency(Number(latestBatch.oldAmount))} â†’
                   {formatCurrency(Number(latestBatch.newAmount))}
                 </div>
               </div>
@@ -120,7 +120,7 @@ export default async function AdministracionPage() {
                         {item.worker.name}
                       </span>
                       <span className="text-slate-600">
-                        {item.daysAffected} dias · {formatCurrency(Number(item.amountDiff))}
+                        {item.daysAffected} dias Â· {formatCurrency(Number(item.amountDiff))}
                       </span>
                     </div>
                   ))}
@@ -218,3 +218,4 @@ export default async function AdministracionPage() {
     </div>
   );
 }
+

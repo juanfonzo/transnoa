@@ -1,4 +1,4 @@
-export const demoRoles = ["JEFE_AREA", "COLABORADOR", "ADMIN", "TESORERIA"] as const;
+﻿export const demoRoles = ["JEFE_AREA", "COLABORADOR", "ADMIN", "TESORERIA"] as const;
 
 export type DemoRole = (typeof demoRoles)[number];
 
@@ -8,3 +8,4 @@ export const roleLabels: Record<DemoRole, string> = {
   ADMIN: "Administracion",
   TESORERIA: "Tesoreria",
 };
+

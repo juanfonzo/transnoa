@@ -1,4 +1,4 @@
-type CsvValue = string | number | boolean | Date | null | undefined;
+﻿type CsvValue = string | number | boolean | Date | null | undefined;
 
 function serialize(value: CsvValue) {
   if (value === null || value === undefined) {
@@ -16,3 +16,4 @@ function serialize(value: CsvValue) {
 export function toCsv(rows: CsvValue[][]) {
   return rows.map((row) => row.map(serialize).join(",")).join("\n");
 }
+

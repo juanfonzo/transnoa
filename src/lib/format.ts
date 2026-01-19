@@ -1,4 +1,4 @@
-export function formatCurrency(amount: number) {
+﻿export function formatCurrency(amount: number) {
   return new Intl.NumberFormat("es-AR", {
     style: "currency",
     currency: "ARS",
@@ -19,3 +19,4 @@ export function formatDateInput(value?: Date | null) {
   }
   return value.toISOString().slice(0, 10);
 }
+

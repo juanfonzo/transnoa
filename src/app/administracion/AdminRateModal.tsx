@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { createRateChange } from "@/app/actions/rates";
@@ -80,3 +80,4 @@ export function AdminRateModal({ currentAmount, effectiveFrom }: AdminRateModalP
     </>
   );
 }
+

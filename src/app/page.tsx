@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { getDemoRole } from "@/lib/demo-auth";
 import { roleLabels, DemoRole } from "@/lib/roles";
 import { requestStatusMeta } from "@/lib/status";
@@ -227,3 +227,4 @@ export default async function Home() {
     </div>
   );
 }
+
