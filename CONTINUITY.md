@@ -1,5 +1,5 @@
 - Goal (incl. success criteria):
-  - Fix Vercel build failure by removing invalid UTF-8 bytes so `npm run build` succeeds.
+  - Fix Vercel build failure by removing BOM/invalid bytes in `package.json` so build succeeds.
 - Constraints/Assumptions:
   - Follow `AGENTS.md` repo rules and continuity ledger process.
   - Keep changes small; no new dependencies.
@@ -7,17 +7,18 @@
 - Key decisions:
   - Re-encode offending source files to UTF-8 when invalid bytes are found.
 - State:
-  - Re-encoded `src/app/solicitudes/SolicitudWizard.tsx` to UTF-8 (no BOM); scan shows no invalid UTF-8 in `src`.
+  - Build now failing on Vercel due to BOM in `package.json` (Unexpected token '﻿').
 - Done:
   - Read AGENTS and current ledger.
   - Normalized `src/app/solicitudes/SolicitudWizard.tsx` encoding to UTF-8.
   - Scanned `src` for invalid UTF-8 bytes (none found).
+  - Re-encoded `package.json` to UTF-8 (no BOM).
 - Now:
-  - Confirm build succeeds after encoding fix.
+  - Confirm build succeeds after `package.json` encoding fix.
 - Next:
   - Re-run build (or provide steps) to confirm error is resolved.
 - Open questions (UNCONFIRMED if needed):
   - None.
 - Working set (files/ids/commands):
-  - src/app/solicitudes/SolicitudWizard.tsx
+  - package.json
   - npm run build
