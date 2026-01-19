@@ -1,0 +1,26 @@
+- Goal (incl. success criteria):
+  - Support per-day worker assignment with multiple concepts per day and allow creating workers from Solicitudes.
+- Constraints/Assumptions:
+  - Follow `AGENTS.md` repo rules and continuity ledger process.
+  - Must include 4 roles in demo.
+  - Demo uses role selector cookie/session, no credentials.
+  - Keep changes consistent with existing Tailwind setup; no new deps.
+- Key decisions:
+  - Store per-day plan in request payload JSON and generate day concepts + worker day counts from it.
+- State:
+  - Wizard and server action updated for day-based assignments; worker creation modal added.
+- Done:
+  - Updated Solicitud wizard with day plan step and per-day worker/concept assignments.
+  - Added createWorker server action and worker creation modal.
+  - Server action now builds worker days and day concepts from day plan.
+- Now:
+  - Validate wizard flow end-to-end with new worker and day plan logic.
+- Next:
+  - Optional: expose day plan summary in Solicitudes detail view.
+- Open questions (UNCONFIRMED if needed):
+  - None.
+- Working set (files/ids/commands):
+  - src/app/solicitudes/SolicitudWizard.tsx
+  - src/app/actions/requests.ts
+  - src/app/actions/workers.ts
+  - src/app/solicitudes/WorkerCreateModal.tsx

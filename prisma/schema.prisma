@@ -1,0 +1,288 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  JEFE_AREA
+  COLABORADOR
+  ADMIN
+  TESORERIA
+}
+
+enum RequestStatus {
+  DRAFT
+  SUBMITTED_TO_ADMIN
+  ADMIN_REVIEW
+  PENDING_SIGNATURE
+  SIGNED
+  SENT_TO_TREASURY
+  TREASURY_RETURNED
+  ADMIN_CORRECTION
+  READY_FOR_PAYMENT
+  PAID
+  CANCELLED
+}
+
+enum BalanceType {
+  DEBIT
+  CREDIT
+}
+
+enum CorrectionStatus {
+  OPEN
+  RESOLVED
+  CANCELLED
+}
+
+enum AdjustmentStatus {
+  DRAFT
+  PENDING_SIGNATURE
+  READY_FOR_PAYMENT
+  PAID
+  CANCELLED
+}
+
+model User {
+  id               String   @id @default(cuid())
+  name             String
+  email            String   @unique
+  role             UserRole
+  areaId           String?
+  signatureUrl     String?
+  signaturePinHash String?
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  area              Area?                       @relation(fields: [areaId], references: [id])
+  createdRequests   ViaticRequest[]             @relation("CreatedRequests")
+  createdVersions   ViaticRequestVersion[]      @relation("CreatedVersions")
+  signatures        Signature[]                 @relation("Signatures")
+  payments          TreasuryPayment[]           @relation("TreasuryPayments")
+  corrections       CorrectionRequest[]         @relation("Corrections")
+  balanceEntries    WorkerViaticBalanceLedger[] @relation("BalanceCreatedBy")
+  rateChanges       ViaticRateHistory[]         @relation("RateCreatedBy")
+  adjustmentBatches RetroactiveAdjustmentBatch[] @relation("AdjustmentCreatedBy")
+  auditLogs         AuditLog[]                  @relation("AuditByUser")
+}
+
+model Area {
+  id       String          @id @default(cuid())
+  name     String          @unique
+  users    User[]
+  requests ViaticRequest[]
+}
+
+model Worker {
+  id        String   @id @default(cuid())
+  legajo    String   @unique
+  name      String
+  dni       String?
+  cbu       String?
+  bank      String?
+  province  String?
+  status    String?
+  createdAt DateTime @default(now())
+
+  requestWorkers ViaticRequestWorker[]
+  balanceEntries WorkerViaticBalanceLedger[]
+  retroItems     RetroactiveAdjustmentItem[]
+}
+
+model ViaticRateHistory {
+  id           String   @id @default(cuid())
+  effectiveFrom DateTime
+  amount       Decimal  @db.Decimal(12, 2)
+  note         String?
+  createdById  String
+  createdAt    DateTime @default(now())
+
+  createdBy User @relation("RateCreatedBy", fields: [createdById], references: [id])
+
+  @@index([effectiveFrom])
+}
+
+model ViaticRequest {
+  id                   String        @id @default(cuid())
+  requestNumber        String        @unique
+  areaId               String
+  createdByUserId      String
+  status               RequestStatus @default(DRAFT)
+  currentVersionNumber Int           @default(1)
+  createdAt            DateTime      @default(now())
+
+  area      Area               @relation(fields: [areaId], references: [id])
+  createdBy User               @relation("CreatedRequests", fields: [createdByUserId], references: [id])
+  versions  ViaticRequestVersion[]
+
+  @@index([status])
+  @@index([areaId])
+}
+
+model ViaticRequestVersion {
+  id                 String   @id @default(cuid())
+  requestId          String
+  versionNumber      Int
+  startDate          DateTime
+  endDate            DateTime
+  plannedPaymentDate DateTime?
+  loteNumber         String?
+  notes              String?
+  payloadJson        Json?
+  createdByUserId    String
+  createdAt          DateTime @default(now())
+
+  request        ViaticRequest               @relation(fields: [requestId], references: [id])
+  createdBy      User                        @relation("CreatedVersions", fields: [createdByUserId], references: [id])
+  workers        ViaticRequestWorker[]
+  dayConcepts    ViaticRequestDayConcept[]
+  signature      Signature?
+  payment        TreasuryPayment?
+  correctionRequests CorrectionRequest[]
+  balanceEntries WorkerViaticBalanceLedger[]
+
+  @@unique([requestId, versionNumber])
+  @@index([requestId])
+}
+
+model ViaticRequestWorker {
+  id                   String  @id @default(cuid())
+  requestVersionId     String
+  workerId             String
+  daysCount            Int
+  dailyAmount          Decimal @db.Decimal(12, 2)
+  grossAmount          Decimal @db.Decimal(12, 2)
+  balanceAppliedAmount Decimal @db.Decimal(12, 2) @default(0)
+  netAmount            Decimal @db.Decimal(12, 2)
+
+  requestVersion ViaticRequestVersion @relation(fields: [requestVersionId], references: [id])
+  worker         Worker               @relation(fields: [workerId], references: [id])
+
+  @@index([requestVersionId])
+  @@index([workerId])
+}
+
+model ViaticRequestDayConcept {
+  id               String   @id @default(cuid())
+  requestVersionId String
+  date             DateTime
+  conceptText      String
+  conceptCode      String?
+
+  requestVersion ViaticRequestVersion @relation(fields: [requestVersionId], references: [id])
+
+  @@index([requestVersionId])
+  @@index([date])
+}
+
+model Signature {
+  id               String   @id @default(cuid())
+  requestVersionId String   @unique
+  signedByUserId   String
+  signedAt         DateTime @default(now())
+  signatureAssetUrl String?
+  signatureMethod  String
+  docHash          String?
+
+  requestVersion ViaticRequestVersion @relation(fields: [requestVersionId], references: [id])
+  signedBy       User                 @relation("Signatures", fields: [signedByUserId], references: [id])
+}
+
+model TreasuryPayment {
+  id               String   @id @default(cuid())
+  requestVersionId String   @unique
+  paidAt           DateTime
+  paymentReference String?
+  attachmentUrl    String?
+  notes            String?
+  createdByUserId  String
+  createdAt        DateTime @default(now())
+
+  requestVersion ViaticRequestVersion @relation(fields: [requestVersionId], references: [id])
+  createdBy     User                  @relation("TreasuryPayments", fields: [createdByUserId], references: [id])
+  retroItems    RetroactiveAdjustmentItem[]
+}
+
+model CorrectionRequest {
+  id                   String           @id @default(cuid())
+  requestVersionId     String
+  requestedByUserId    String
+  requestedAt          DateTime         @default(now())
+  reason               String
+  suggestedPaymentDate DateTime?
+  status               CorrectionStatus @default(OPEN)
+
+  requestVersion ViaticRequestVersion @relation(fields: [requestVersionId], references: [id])
+  requestedBy    User                 @relation("Corrections", fields: [requestedByUserId], references: [id])
+
+  @@index([status])
+}
+
+model WorkerViaticBalanceLedger {
+  id                     String      @id @default(cuid())
+  workerId               String
+  type                   BalanceType
+  amount                 Decimal     @db.Decimal(12, 2)
+  reason                 String
+  relatedRequestVersionId String?
+  createdByUserId        String
+  createdAt              DateTime    @default(now())
+
+  worker         Worker               @relation(fields: [workerId], references: [id])
+  relatedRequest ViaticRequestVersion? @relation(fields: [relatedRequestVersionId], references: [id])
+  createdBy      User                 @relation("BalanceCreatedBy", fields: [createdByUserId], references: [id])
+
+  @@index([workerId])
+}
+
+model RetroactiveAdjustmentBatch {
+  id               String           @id @default(cuid())
+  periodMonth      String
+  effectiveFromDate DateTime
+  oldAmount        Decimal          @db.Decimal(12, 2)
+  newAmount        Decimal          @db.Decimal(12, 2)
+  status           AdjustmentStatus @default(DRAFT)
+  createdByUserId  String
+  createdAt        DateTime         @default(now())
+
+  createdBy User @relation("AdjustmentCreatedBy", fields: [createdByUserId], references: [id])
+  items     RetroactiveAdjustmentItem[]
+
+  @@index([status])
+}
+
+model RetroactiveAdjustmentItem {
+  id              String           @id @default(cuid())
+  batchId         String
+  workerId        String
+  daysAffected    Int
+  amountDiff      Decimal          @db.Decimal(12, 2)
+  status          AdjustmentStatus @default(DRAFT)
+  relatedPaymentId String?
+
+  batch    RetroactiveAdjustmentBatch @relation(fields: [batchId], references: [id])
+  worker   Worker                     @relation(fields: [workerId], references: [id])
+  payment  TreasuryPayment?           @relation(fields: [relatedPaymentId], references: [id])
+
+  @@index([batchId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  entity    String
+  entityId  String
+  action    String
+  beforeJson Json?
+  afterJson  Json?
+  userId    String?
+  createdAt DateTime @default(now())
+  ip        String?
+
+  user User? @relation("AuditByUser", fields: [userId], references: [id])
+
+  @@index([entity, entityId])
+}
