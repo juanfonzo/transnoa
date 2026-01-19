@@ -7,14 +7,14 @@
 - Key decisions:
   - Re-encode offending source files to UTF-8 when invalid bytes are found.
 - State:
-  - Build now failing on Vercel due to BOM in `package.json` (Unexpected token '﻿').
+  - Removed BOM bytes from `package.json`; file now starts with `{`.
 - Done:
   - Read AGENTS and current ledger.
   - Normalized `src/app/solicitudes/SolicitudWizard.tsx` encoding to UTF-8.
   - Scanned `src` for invalid UTF-8 bytes (none found).
-  - Re-encoded `package.json` to UTF-8 (no BOM).
+  - Stripped BOM from `package.json` and re-encoded to UTF-8.
 - Now:
-  - Confirm build succeeds after `package.json` encoding fix.
+  - Confirm build succeeds after `package.json` BOM removal.
 - Next:
   - Re-run build (or provide steps) to confirm error is resolved.
 - Open questions (UNCONFIRMED if needed):
