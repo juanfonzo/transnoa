@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/format";
+import { WorkerCreateModal } from "@/app/solicitudes/WorkerCreateModal";
 
 export default async function ColaboradoresPage() {
   const workers = await prisma.worker.findMany({
@@ -9,11 +10,16 @@ export default async function ColaboradoresPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h2 className="text-3xl font-semibold text-slate-900">Colaboradores</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Cuenta corriente y saldo actualizado por trabajador.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-3xl font-semibold text-slate-900">
+            Colaboradores
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Cuenta corriente y saldo actualizado por trabajador.
+          </p>
+        </div>
+        <WorkerCreateModal />
       </header>
 
       {workers.length === 0 ? (

@@ -68,7 +68,7 @@ export default async function AdministracionPage() {
       </header>
 
       <section className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -88,7 +88,7 @@ export default async function AdministracionPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Ajuste retroactivo
           </p>
@@ -135,86 +135,92 @@ export default async function AdministracionPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2">
-        {adminQueues.map((queue) => {
-          const tone = getStatusTone(queue.status as RequestStatus);
-          return (
-            <div
-              key={queue.status}
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-            >
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {queue.title}
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">
-                {statusCounts[queue.status] ?? 0}
-              </p>
-              <p className="mt-1 text-sm text-slate-600">{queue.description}</p>
-              <span
-                className={`mt-4 inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${getToneClasses(
-                  tone
-                )}`}
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+          {adminQueues.map((queue) => {
+            const tone = getStatusTone(queue.status as RequestStatus);
+            return (
+              <div
+                key={queue.status}
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
               >
-                {getRequestStatusLabel(queue.status)}
-              </span>
-            </div>
-          );
-        })}
-      </section>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {queue.title}
+                </p>
+                <p className="mt-2 text-xl font-semibold text-slate-900">
+                  {statusCounts[queue.status] ?? 0}
+                </p>
+                <p className="mt-1 text-sm text-slate-600">
+                  {queue.description}
+                </p>
+                <span
+                  className={`mt-3 inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${getToneClasses(
+                    tone
+                  )}`}
+                >
+                  {getRequestStatusLabel(queue.status)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
 
-      {requests.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-          No hay solicitudes pendientes para administracion.
-        </div>
-      ) : (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <tr>
-                <th className="px-4 py-3">Solicitud</th>
-                <th className="px-4 py-3">Area</th>
-                <th className="px-4 py-3">Version</th>
-                <th className="px-4 py-3">Lote</th>
-                <th className="px-4 py-3">Estado</th>
-                <th className="px-4 py-3">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {requests.map((request) => {
-                const version = request.versions[0];
-                return (
-                  <tr key={request.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3">
-                      <div className="font-semibold text-slate-900">
-                        {request.requestNumber}
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        {formatDate(request.createdAt)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">{request.area.name}</td>
-                    <td className="px-4 py-3">
-                      v{request.versions[0]?.versionNumber ?? "-"}
-                    </td>
-                    <td className="px-4 py-3">{request.versions[0]?.loteNumber ?? "-"}</td>
-                    <td className="px-4 py-3">
-                      <StatusPill status={request.status} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <AdminActions
-                        requestId={request.id}
-                        status={request.status}
-                        loteNumber={version?.loteNumber}
-                        plannedPaymentDate={version?.plannedPaymentDate}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+        {requests.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+            No hay solicitudes pendientes para administracion.
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3">Solicitud</th>
+                  <th className="px-4 py-3">Area</th>
+                  <th className="px-4 py-3">Version</th>
+                  <th className="px-4 py-3">Lote</th>
+                  <th className="px-4 py-3">Estado</th>
+                  <th className="px-4 py-3">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {requests.map((request) => {
+                  const version = request.versions[0];
+                  return (
+                    <tr key={request.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3">
+                        <div className="font-semibold text-slate-900">
+                          {request.requestNumber}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {formatDate(request.createdAt)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">{request.area.name}</td>
+                      <td className="px-4 py-3">
+                        v{request.versions[0]?.versionNumber ?? "-"}
+                      </td>
+                      <td className="px-4 py-3">
+                        {request.versions[0]?.loteNumber ?? "-"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusPill status={request.status} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <AdminActions
+                          requestId={request.id}
+                          status={request.status}
+                          loteNumber={version?.loteNumber}
+                          plannedPaymentDate={version?.plannedPaymentDate}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

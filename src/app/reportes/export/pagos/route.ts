@@ -17,14 +17,14 @@ export async function GET() {
 
   const rows = [
     [
-      "request_number",
+      "solicitud",
       "version",
       "area",
       "lote",
-      "paid_at",
-      "payment_reference",
+      "fecha_pago",
+      "referencia_pago",
       "total",
-      "created_by",
+      "creado_por",
     ],
     ...payments.map((payment) => {
       const request = payment.requestVersion.request;

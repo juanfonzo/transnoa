@@ -1,5 +1,5 @@
 - Goal (incl. success criteria):
-  - Fix Vercel build failure caused by missing Prisma Client generation on Vercel.
+  - Add worker creation from Colaboradores, Spanish CSV headers, and tighter Admin cards layout.
 - Constraints/Assumptions:
   - Follow `AGENTS.md` repo rules and continuity ledger process.
   - Keep changes small; no new dependencies.
@@ -7,20 +7,20 @@
 - Key decisions:
   - Re-encode offending source files to UTF-8 when invalid bytes are found.
 - State:
-  - Added `prisma generate` to the build script so Vercel builds generate Prisma Client.
+  - Implemented Colaboradores create modal, Spanish CSV headers, and denser Admin layout.
 - Done:
-  - Read AGENTS and current ledger.
-  - Normalized `src/app/solicitudes/SolicitudWizard.tsx` encoding to UTF-8.
-  - Scanned `src` for invalid UTF-8 bytes (none found).
-  - Stripped BOM from `package.json` and `tsconfig.json`.
-  - Removed BOM from all scanned `src`, `prisma`, and root config files.
-  - Updated build script to run `prisma generate` before `next build`.
+  - Fixed Vercel build by running `prisma generate` during build and removing BOMs.
+  - Added worker creation CTA to Colaboradores.
+  - Translated CSV headers to Spanish for report exports.
+  - Reworked Admin layout to reduce whitespace and bring table up.
 - Now:
-  - Commit/push and re-run Vercel build to confirm Prisma Client generation.
+  - Quick UI/copy pass on new changes.
 - Next:
-  - Re-run build (or provide steps) to confirm error is resolved.
+  - Validate UI flows and export outputs.
 - Open questions (UNCONFIRMED if needed):
   - None.
 - Working set (files/ids/commands):
-  - package.json
-  - npm run build
+  - src/app/colaboradores/page.tsx
+  - src/app/reportes/export/pagos/route.ts
+  - src/app/reportes/export/solicitudes/route.ts
+  - src/app/administracion/page.tsx

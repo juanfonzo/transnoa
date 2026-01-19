@@ -16,16 +16,16 @@ export async function GET() {
 
   const rows = [
     [
-      "request_number",
+      "solicitud",
       "area",
-      "status",
+      "estado",
       "version",
       "lote",
-      "start_date",
-      "end_date",
-      "planned_payment_date",
+      "inicio",
+      "fin",
+      "fecha_pago_planificada",
       "total",
-      "created_at",
+      "fecha_creacion",
     ],
     ...requests.map((request) => {
       const version = request.versions[0];
