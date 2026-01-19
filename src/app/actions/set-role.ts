@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import { DemoRole, demoRoles } from "@/lib/roles";
 import { setDemoRole } from "@/lib/demo-auth";

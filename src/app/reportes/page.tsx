@@ -1,4 +1,4 @@
-﻿export default function ReportesPage() {
+export default function ReportesPage() {
   return (
     <div className="space-y-6">
       <header>

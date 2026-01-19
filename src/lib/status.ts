@@ -1,4 +1,4 @@
-﻿import { RequestStatus } from "@prisma/client";
+import { RequestStatus } from "@prisma/client";
 
 type StatusMeta = {
   label: string;

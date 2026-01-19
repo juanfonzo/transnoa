@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { RequestStatus } from "@prisma/client";
 import { useState } from "react";

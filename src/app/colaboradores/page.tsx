@@ -1,4 +1,4 @@
-﻿import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/format";
 
 export default async function ColaboradoresPage() {

@@ -1,4 +1,4 @@
-﻿import { cookies } from "next/headers";
+import { cookies } from "next/headers";
 import { DemoRole, demoRoles } from "@/lib/roles";
 
 const ROLE_COOKIE = "demo_role";

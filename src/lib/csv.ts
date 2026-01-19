@@ -1,4 +1,4 @@
-﻿type CsvValue = string | number | boolean | Date | null | undefined;
+type CsvValue = string | number | boolean | Date | null | undefined;
 
 function serialize(value: CsvValue) {
   if (value === null || value === undefined) {

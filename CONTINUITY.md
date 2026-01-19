@@ -1,5 +1,5 @@
 - Goal (incl. success criteria):
-  - Fix Vercel build failure by removing BOM/invalid bytes in `package.json` so build succeeds.
+  - Fix Vercel build failures from BOM/invalid JSON and missing module resolution.
 - Constraints/Assumptions:
   - Follow `AGENTS.md` repo rules and continuity ledger process.
   - Keep changes small; no new dependencies.
@@ -7,18 +7,20 @@
 - Key decisions:
   - Re-encode offending source files to UTF-8 when invalid bytes are found.
 - State:
-  - Removed BOM bytes from `package.json`; file now starts with `{`.
+  - Stripped BOM from `tsconfig.json` and all scanned source/config files; no BOM remains.
 - Done:
   - Read AGENTS and current ledger.
   - Normalized `src/app/solicitudes/SolicitudWizard.tsx` encoding to UTF-8.
   - Scanned `src` for invalid UTF-8 bytes (none found).
-  - Stripped BOM from `package.json` and re-encoded to UTF-8.
+  - Stripped BOM from `package.json` and `tsconfig.json`.
+  - Removed BOM from all scanned `src`, `prisma`, and root config files.
 - Now:
-  - Confirm build succeeds after `package.json` BOM removal.
+  - Confirm build succeeds after BOM removal and verify module resolution on Vercel.
 - Next:
   - Re-run build (or provide steps) to confirm error is resolved.
 - Open questions (UNCONFIRMED if needed):
   - None.
 - Working set (files/ids/commands):
+  - tsconfig.json
   - package.json
   - npm run build

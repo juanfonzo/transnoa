@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import { Prisma, UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
