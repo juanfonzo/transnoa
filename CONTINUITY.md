@@ -1,5 +1,5 @@
 - Goal (incl. success criteria):
-  - Add worker creation from Colaboradores, Spanish CSV headers, and tighter Admin cards layout.
+  - Adjust Admin card layout, improve Colaboradores CTA visibility, and refine Panel flow card with role selector.
 - Constraints/Assumptions:
   - Follow `AGENTS.md` repo rules and continuity ledger process.
   - Keep changes small; no new dependencies.
@@ -7,20 +7,19 @@
 - Key decisions:
   - Re-encode offending source files to UTF-8 when invalid bytes are found.
 - State:
-  - Implemented Colaboradores create modal, Spanish CSV headers, and denser Admin layout.
+  - Applied UI adjustments for Administracion, Colaboradores, and Panel.
 - Done:
-  - Fixed Vercel build by running `prisma generate` during build and removing BOMs.
-  - Added worker creation CTA to Colaboradores.
-  - Translated CSV headers to Spanish for report exports.
-  - Reworked Admin layout to reduce whitespace and bring table up.
+  - Previous UX and export updates shipped; build stable.
+  - Moved Admin rate button below date and compacted admin layout.
+  - Added primary styling to the "Nuevo colaborador" button.
+  - Moved Flow card above modules and added per-role highlights selector.
 - Now:
-  - Quick UI/copy pass on new changes.
+  - Quick pass for any layout regressions.
 - Next:
-  - Validate UI flows and export outputs.
+  - Quick visual pass across affected pages.
 - Open questions (UNCONFIRMED if needed):
   - None.
 - Working set (files/ids/commands):
-  - src/app/colaboradores/page.tsx
-  - src/app/reportes/export/pagos/route.ts
-  - src/app/reportes/export/solicitudes/route.ts
   - src/app/administracion/page.tsx
+  - src/app/colaboradores/page.tsx
+  - src/app/page.tsx

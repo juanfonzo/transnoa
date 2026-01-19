@@ -35,7 +35,7 @@ export function WorkerCreateModal({ onCreated }: WorkerCreateModalProps) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600"
+        className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-800"
       >
         Nuevo colaborador
       </button>

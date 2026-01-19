@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getDemoRole } from "@/lib/demo-auth";
 import { roleLabels, DemoRole } from "@/lib/roles";
 import { requestStatusMeta } from "@/lib/status";
+import { FlowCard } from "@/components/FlowCard";
 
 type ModuleCard = {
   title: string;
@@ -87,13 +88,6 @@ const modulesByRole: Record<DemoRole, ModuleCard[]> = {
   ],
 };
 
-const mainFlow = [
-  "Jefe carga la solicitud con cuadrilla y conceptos diarios.",
-  "Administracion valida, estandariza y asigna lote/fecha.",
-  "Jefe firma y la solicitud queda lista para tesoreria.",
-  "Tesoreria registra el pago y deja trazabilidad.",
-];
-
 const keyStates = [
   "DRAFT",
   "SUBMITTED_TO_ADMIN",
@@ -144,6 +138,8 @@ export default async function Home() {
         </div>
       </section>
 
+      <FlowCard initialRole={role} />
+
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {modules.map((module) => (
           <article
@@ -177,21 +173,7 @@ export default async function Home() {
         ))}
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Flujo principal
-          </h3>
-          <ul className="mt-4 space-y-2 text-sm text-slate-700">
-            {mainFlow.map((step) => (
-              <li key={step} className="flex gap-2">
-                <span className="mt-1 h-1.5 w-1.5 rounded-full bg-slate-400" />
-                <span>{step}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
+      <section className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
             Estados clave

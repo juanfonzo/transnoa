@@ -69,18 +69,18 @@ export default async function AdministracionPage() {
 
       <section className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Viatico diario
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">
-                {formatCurrency(Number(latestRate?.amount ?? 0))}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Vigente desde {formatDate(latestRate?.effectiveFrom)}
-              </p>
-            </div>
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Viatico diario
+            </p>
+            <p className="text-2xl font-semibold text-slate-900">
+              {formatCurrency(Number(latestRate?.amount ?? 0))}
+            </p>
+            <p className="text-xs text-slate-500">
+              Vigente desde {formatDate(latestRate?.effectiveFrom)}
+            </p>
+          </div>
+          <div className="mt-3">
             <AdminRateModal
               currentAmount={Number(latestRate?.amount ?? 0)}
               effectiveFrom={latestRate?.effectiveFrom ?? new Date()}
@@ -104,7 +104,7 @@ export default async function AdministracionPage() {
                   </p>
                 </div>
                 <div className="text-xs text-slate-500">
-                  {formatCurrency(Number(latestBatch.oldAmount))} â†’
+                  {formatCurrency(Number(latestBatch.oldAmount))} a
                   {formatCurrency(Number(latestBatch.newAmount))}
                 </div>
               </div>
@@ -120,7 +120,7 @@ export default async function AdministracionPage() {
                         {item.worker.name}
                       </span>
                       <span className="text-slate-600">
-                        {item.daysAffected} dias Â· {formatCurrency(Number(item.amountDiff))}
+                        {item.daysAffected} dias x {formatCurrency(Number(item.amountDiff))}
                       </span>
                     </div>
                   ))}
@@ -135,8 +135,8 @@ export default async function AdministracionPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+      <section className="grid gap-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {adminQueues.map((queue) => {
             const tone = getStatusTone(queue.status as RequestStatus);
             return (
@@ -170,8 +170,8 @@ export default async function AdministracionPage() {
             No hay solicitudes pendientes para administracion.
           </div>
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <table className="w-full text-left text-sm">
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <table className="min-w-[720px] w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Solicitud</th>
