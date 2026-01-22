@@ -1,6 +1,6 @@
 "use server";
 
-import { Prisma } from "@prisma/client";
+import { BalanceType, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 
@@ -177,21 +177,22 @@ export async function applyRetroactiveBatch(formData: FormData) {
     return;
   }
 
-  const ledgerEntries = batch.items
-    .map((item) => {
+  const ledgerEntries: Prisma.WorkerViaticBalanceLedgerCreateManyInput[] =
+    batch.items.flatMap((item) => {
       const amount = Number(item.amountDiff);
       if (!amount) {
-        return null;
+        return [];
       }
-      return {
-        workerId: item.workerId,
-        type: amount > 0 ? "CREDIT" : "DEBIT",
-        amount: new Prisma.Decimal(Math.abs(amount)),
-        reason: `Ajuste retroactivo ${batch.periodMonth}`,
-        createdByUserId: admin.id,
-      };
-    })
-    .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+      return [
+        {
+          workerId: item.workerId,
+          type: amount > 0 ? BalanceType.CREDIT : BalanceType.DEBIT,
+          amount: new Prisma.Decimal(Math.abs(amount)),
+          reason: `Ajuste retroactivo ${batch.periodMonth}`,
+          createdByUserId: admin.id,
+        },
+      ];
+    });
 
   await prisma.$transaction([
     ...(ledgerEntries.length > 0

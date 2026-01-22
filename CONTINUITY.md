@@ -1,5 +1,5 @@
 - Goal (incl. success criteria):
-  - Add Admin module tabs and implement requested sections (Solicitudes, Viaticos y retroactivos, Rendiciones, Pagos y correcciones, Reporte) with correct data, filters, and actions per spec.
+  - Resolve build/type errors and keep Admin/Tesoreria refactor stable and compiling.
 - Constraints/Assumptions:
   - Follow `AGENTS.md` repo rules and continuity ledger process.
   - Keep changes small; no new dependencies.
@@ -8,7 +8,7 @@
 - Key decisions:
   - Lote corrections in Pagos y correcciones update the latest version in place (no new version).
 - State:
-  - Admin module refactor continuing; report module renamed to Tesoreria and Excel exports updated.
+  - Build error fixes applied for retroactive ledger typing and Excel export decimals.
 - Done:
   - Read `AGENTS.md` and current `CONTINUITY.md`.
   - Added Admin module tab layout and split content by section.
@@ -28,11 +28,13 @@
   - Removed "Estados clave" and "Base de datos activa" cards from Panel.
   - Renamed Reportes module to Tesoreria in navigation and Admin tab.
   - Updated report exports to Excel-compatible .xls output.
+  - Fixed `applyRetroactiveBatch` ledger entries typing to use `BalanceType`.
+  - Converted Decimal fields to numbers in Excel export rows.
 - Now:
-  - Verify Tesoreria label appears in navigation and report downloads open in Excel.
+  - Await build rerun to confirm the TypeScript error is resolved.
 - Next:
-  - Validate payment/corrections flow and retroactive apply after changes.
-  - Add any missing polish or tests once schema migration is decided.
+  - Re-check build if errors persist and adjust based on logs.
+  - Validate payment/corrections flow and retroactive apply status when confirmed.
 - Open questions (UNCONFIRMED if needed):
   - Required Excel report format/fields beyond "viaticos pagados".
   - Should retroactive apply mark batches/items as PAID or move to READY_FOR_PAYMENT?

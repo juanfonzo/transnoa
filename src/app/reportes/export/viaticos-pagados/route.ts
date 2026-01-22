@@ -26,6 +26,8 @@ export async function GET() {
     const version = row.requestVersion;
     const payment = version.payment;
     const rendition = row.rendition;
+    const netAmount = Number(row.netAmount);
+    const daysCount = Number(row.daysCount);
     const legsText =
       rendition?.legs
         .map((leg) => {
@@ -45,8 +47,8 @@ export async function GET() {
       payment?.paidAt ?? "",
       row.worker.name,
       row.worker.legajo,
-      row.daysCount,
-      row.netAmount,
+      daysCount,
+      netAmount,
       rendition?.reason ?? "",
       rendition?.vehiclePlate ?? "",
       legsText,
