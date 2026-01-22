@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { getDemoRole } from "@/lib/demo-auth";
 import { roleLabels, DemoRole } from "@/lib/roles";
-import { requestStatusMeta } from "@/lib/status";
 import { FlowCard } from "@/components/FlowCard";
 
 type ModuleCard = {
@@ -54,47 +53,27 @@ const modulesByRole: Record<DemoRole, ModuleCard[]> = {
       tone: "sky",
     },
     {
-      title: "Versionado",
-      description: "Corregir solicitudes devueltas y reenviar a firma.",
-      href: "/administracion",
+      title: "Pagos y correcciones",
+      description: "Registrar pagos, ajustar lote y validar cierres.",
+      href: "/administracion?tab=pagos",
       tone: "amber",
     },
     {
       title: "Viatico diario",
       description: "Cambios de monto y ajustes retroactivos.",
-      href: "/reportes",
+      href: "/administracion?tab=viaticos",
       tone: "emerald",
     },
   ],
   TESORERIA: [
     {
-      title: "Pagos",
-      description: "Registrar depositos y adjuntar comprobantes.",
-      href: "/tesoreria",
-      tone: "emerald",
-    },
-    {
-      title: "Correcciones",
-      description: "Solicitar cambios de lote o fecha a administracion.",
-      href: "/tesoreria",
-      tone: "amber",
-    },
-    {
-      title: "Reportes",
-      description: "Exportar pagos por lote o periodo.",
+      title: "Tesoreria",
+      description: "Descargar reportes de pagos y viaticos.",
       href: "/reportes",
       tone: "slate",
     },
   ],
 };
-
-const keyStates = [
-  "DRAFT",
-  "SUBMITTED_TO_ADMIN",
-  "PENDING_SIGNATURE",
-  "READY_FOR_PAYMENT",
-  "PAID",
-] as const;
 
 export default async function Home() {
   const role = await getDemoRole();
@@ -173,39 +152,6 @@ export default async function Home() {
         ))}
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Estados clave
-          </h3>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {keyStates.map((state) => (
-              <span
-                key={state}
-                className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"
-              >
-                {requestStatusMeta[state].label}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Base de datos activa
-          </h3>
-          <p className="mt-4 text-sm text-slate-600">
-            Neon guarda solicitudes, firmas y pagos para que el demo sea
-            consistente en Vercel.
-          </p>
-          <Link
-            href="/solicitudes"
-            className="mt-4 inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white"
-          >
-            Ver registros
-          </Link>
-        </div>
-      </section>
     </div>
   );
 }

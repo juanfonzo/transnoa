@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/format";
+import Link from "next/link";
 import { StatusPill } from "@/components/StatusPill";
-import { TreasuryActions } from "@/app/tesoreria/TreasuryActions";
 
 export default async function TesoreriaPage() {
   const requests = await prisma.viaticRequest.findMany({
@@ -21,7 +21,7 @@ export default async function TesoreriaPage() {
       <header>
         <h2 className="text-3xl font-semibold text-slate-900">Tesoreria</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Solicitudes listas para pago y control de movimientos registrados.
+          Modulo informativo. Pagos y correcciones se gestionan en Administracion.
         </p>
       </header>
 
@@ -38,10 +38,10 @@ export default async function TesoreriaPage() {
                 <th className="px-4 py-3">Area</th>
                 <th className="px-4 py-3">Lote</th>
                 <th className="px-4 py-3">Estado</th>
-                <th className="px-4 py-3">Pago</th>
-                <th className="px-4 py-3">Acciones</th>
-              </tr>
-            </thead>
+                  <th className="px-4 py-3">Pago</th>
+                  <th className="px-4 py-3">Acciones</th>
+                </tr>
+              </thead>
             <tbody className="divide-y divide-slate-100">
               {requests.map((request) => {
                 const version = request.versions[0];
@@ -72,16 +72,12 @@ export default async function TesoreriaPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {paidAt ? (
-                        <span className="text-xs text-slate-400">-</span>
-                      ) : (
-                        <div className="flex flex-wrap gap-2">
-                          <TreasuryActions
-                            requestId={request.id}
-                            plannedPaymentDate={version?.plannedPaymentDate}
-                          />
-                        </div>
-                      )}
+                      <Link
+                        href="/administracion?tab=pagos"
+                        className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600"
+                      >
+                        Ver en administracion
+                      </Link>
                     </td>
                   </tr>
                 );

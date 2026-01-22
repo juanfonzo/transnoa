@@ -572,6 +572,149 @@ export async function markPaid(formData: FormData) {
   revalidatePath("/solicitudes");
 }
 
+export async function adminMarkPaid(formData: FormData) {
+  const requestId = formData.get("requestId");
+  const paidAtValue = parseDate(formData.get("paidAt"));
+  const paymentReference = formData.get("paymentReference");
+  const notes = formData.get("notes");
+  if (typeof requestId !== "string") {
+    return;
+  }
+
+  const actor = await getActor("ADMIN");
+  if (!actor) {
+    return;
+  }
+
+  const request = await prisma.viaticRequest.findUnique({
+    where: { id: requestId },
+    include: {
+      versions: { orderBy: { versionNumber: "desc" }, take: 1 },
+    },
+  });
+
+  const version = request?.versions[0];
+  if (!request || !version) {
+    return;
+  }
+
+  await prisma.viaticRequest.update({
+    where: { id: requestId },
+    data: { status: "PAID" },
+  });
+
+  await prisma.treasuryPayment.upsert({
+    where: { requestVersionId: version.id },
+    update: {
+      paidAt: paidAtValue ?? new Date(),
+      paymentReference:
+        typeof paymentReference === "string" && paymentReference.trim() !== ""
+          ? paymentReference
+          : "DEP-DEMO",
+      notes: typeof notes === "string" ? notes : "Pago registrado desde admin",
+    },
+    create: {
+      requestVersionId: version.id,
+      paidAt: paidAtValue ?? new Date(),
+      paymentReference:
+        typeof paymentReference === "string" && paymentReference.trim() !== ""
+          ? paymentReference
+          : "DEP-DEMO",
+      notes: typeof notes === "string" ? notes : "Pago registrado desde admin",
+      createdByUserId: actor.id,
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      entity: "viatic_request",
+      entityId: request.id,
+      action: "admin_mark_paid",
+      afterJson: { status: "PAID" },
+      userId: actor.id,
+    },
+  });
+
+  revalidatePath("/administracion");
+  revalidatePath("/solicitudes");
+}
+
+export async function adminUpdateLote(formData: FormData) {
+  const requestId = formData.get("requestId");
+  if (typeof requestId !== "string") {
+    return;
+  }
+
+  const actor = await getActor("ADMIN");
+  if (!actor) {
+    return;
+  }
+
+  const request = await prisma.viaticRequest.findUnique({
+    where: { id: requestId },
+    include: {
+      versions: {
+        orderBy: { versionNumber: "desc" },
+        take: 1,
+        include: { payment: true, signature: true },
+      },
+    },
+  });
+  const version = request?.versions[0];
+  if (!request || !version) {
+    return;
+  }
+
+  if (request.status === "PAID" || version.payment) {
+    return;
+  }
+
+  const plannedPaymentDate = parseDate(formData.get("plannedPaymentDate"));
+  const loteRaw =
+    typeof formData.get("loteNumber") === "string"
+      ? String(formData.get("loteNumber")).trim()
+      : "";
+  const notesRaw = formData.get("notes");
+
+  await prisma.viaticRequestVersion.update({
+    where: { id: version.id },
+    data: {
+      loteNumber: loteRaw === "" ? null : loteRaw,
+      plannedPaymentDate: plannedPaymentDate ?? version.plannedPaymentDate,
+      notes:
+        typeof notesRaw === "string" && notesRaw.trim() !== ""
+          ? notesRaw
+          : version.notes,
+    },
+  });
+
+  await prisma.$transaction([
+    prisma.signature.deleteMany({
+      where: { requestVersionId: version.id },
+    }),
+    prisma.viaticRequest.update({
+      where: { id: request.id },
+      data: { status: "PENDING_SIGNATURE" },
+    }),
+    prisma.auditLog.create({
+      data: {
+        entity: "viatic_request_version",
+        entityId: version.id,
+        action: "admin_update_lote",
+        afterJson: {
+          loteNumber: loteRaw === "" ? null : loteRaw,
+          plannedPaymentDate: plannedPaymentDate?.toISOString() ?? null,
+          status: "PENDING_SIGNATURE",
+        },
+        userId: actor.id,
+      },
+    }),
+  ]);
+
+  revalidatePath("/administracion");
+  revalidatePath("/solicitudes");
+}
+
 export async function requestCorrection(formData: FormData) {
   const requestId = formData.get("requestId");
   const reason = formData.get("reason");

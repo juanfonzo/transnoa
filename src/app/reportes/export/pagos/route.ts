@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { toCsv } from "@/lib/csv";
+import { toExcelHtml } from "@/lib/excel";
 
 export async function GET() {
   const payments = await prisma.treasuryPayment.findMany({
@@ -46,12 +46,12 @@ export async function GET() {
     }),
   ];
 
-  const csv = toCsv(rows);
+  const excel = toExcelHtml(rows);
 
-  return new Response(csv, {
+  return new Response(excel, {
     headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": "attachment; filename=pagos.csv",
+      "Content-Type": "application/vnd.ms-excel; charset=utf-8",
+      "Content-Disposition": "attachment; filename=pagos.xls",
     },
   });
 }

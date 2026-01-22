@@ -58,6 +58,7 @@ function buildDates(start?: string, end?: string) {
 export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizardProps) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
+  const [notice, setNotice] = useState<string | null>(null);
   const [areaId, setAreaId] = useState(areas[0]?.id ?? "");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -134,6 +135,19 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
     setStep(0);
   };
 
+  const handleSubmit = async (formData: FormData) => {
+    await createRequestWizard(formData);
+    setOpen(false);
+    setStep(0);
+    setNotice("Su solicitud fue enviada a administracion.");
+  };
+
+  useEffect(() => {
+    if (!notice) return;
+    const timeout = setTimeout(() => setNotice(null), 6000);
+    return () => clearTimeout(timeout);
+  }, [notice]);
+
   const formatDayLabel = (date: string) =>
     new Intl.DateTimeFormat("es-AR", {
       day: "2-digit",
@@ -142,6 +156,15 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
 
   return (
     <>
+      {notice && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"
+        >
+          {notice}
+        </div>
+      )}
       <button
         type="button"
         onClick={handleOpen}
@@ -169,7 +192,7 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
           ))}
         </div>
 
-        <form action={createRequestWizard} className="space-y-4">
+        <form action={handleSubmit} className="space-y-4">
           <input type="hidden" name="areaId" value={areaId} />
           <input type="hidden" name="startDate" value={startDate} />
           <input type="hidden" name="endDate" value={endDate} />

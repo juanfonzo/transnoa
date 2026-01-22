@@ -67,6 +67,7 @@ model User {
   balanceEntries    WorkerViaticBalanceLedger[] @relation("BalanceCreatedBy")
   rateChanges       ViaticRateHistory[]         @relation("RateCreatedBy")
   adjustmentBatches RetroactiveAdjustmentBatch[] @relation("AdjustmentCreatedBy")
+  renditions        ViaticRendition[]           @relation("RenditionCreatedBy")
   auditLogs         AuditLog[]                  @relation("AuditByUser")
 }
 
@@ -91,6 +92,7 @@ model Worker {
   requestWorkers ViaticRequestWorker[]
   balanceEntries WorkerViaticBalanceLedger[]
   retroItems     RetroactiveAdjustmentItem[]
+  renditions     ViaticRendition[]
 }
 
 model ViaticRateHistory {
@@ -144,6 +146,7 @@ model ViaticRequestVersion {
   payment        TreasuryPayment?
   correctionRequests CorrectionRequest[]
   balanceEntries WorkerViaticBalanceLedger[]
+  renditions ViaticRendition[]
 
   @@unique([requestId, versionNumber])
   @@index([requestId])
@@ -161,9 +164,50 @@ model ViaticRequestWorker {
 
   requestVersion ViaticRequestVersion @relation(fields: [requestVersionId], references: [id])
   worker         Worker               @relation(fields: [workerId], references: [id])
+  rendition      ViaticRendition?
 
   @@index([requestVersionId])
   @@index([workerId])
+}
+
+model ViaticRendition {
+  id               String   @id @default(cuid())
+  requestWorkerId  String   @unique
+  requestVersionId String
+  workerId         String
+  reason           String?
+  vehiclePlate     String?
+  attachmentUrl    String?
+  notes            String?
+  createdByUserId  String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  requestWorker  ViaticRequestWorker @relation(fields: [requestWorkerId], references: [id])
+  requestVersion ViaticRequestVersion @relation(fields: [requestVersionId], references: [id])
+  worker         Worker               @relation(fields: [workerId], references: [id])
+  createdBy      User                 @relation("RenditionCreatedBy", fields: [createdByUserId], references: [id])
+  legs           ViaticRenditionLeg[]
+
+  @@index([requestVersionId])
+  @@index([workerId])
+}
+
+model ViaticRenditionLeg {
+  id                String   @id @default(cuid())
+  renditionId       String
+  orderIndex        Int
+  departureLocation String
+  departureAt       DateTime?
+  departureKm       Int?
+  arrivalLocation   String
+  arrivalAt         DateTime?
+  arrivalKm         Int?
+  createdAt         DateTime @default(now())
+
+  rendition ViaticRendition @relation(fields: [renditionId], references: [id])
+
+  @@index([renditionId])
 }
 
 model ViaticRequestDayConcept {

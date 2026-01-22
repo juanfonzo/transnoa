@@ -14,6 +14,11 @@ type AdminRateModalProps = {
 export function AdminRateModal({ currentAmount, effectiveFrom }: AdminRateModalProps) {
   const [open, setOpen] = useState(false);
 
+  const handleSubmit = async (formData: FormData) => {
+    await createRateChange(formData);
+    setOpen(false);
+  };
+
   return (
     <>
       <button
@@ -30,7 +35,7 @@ export function AdminRateModal({ currentAmount, effectiveFrom }: AdminRateModalP
         title="Nuevo valor de viatico"
         description="Define el monto y la fecha desde la que aplica. Si la fecha ya paso, se genera ajuste retroactivo."
       >
-        <form action={createRateChange} className="space-y-4">
+        <form action={handleSubmit} className="space-y-4">
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Valor actual

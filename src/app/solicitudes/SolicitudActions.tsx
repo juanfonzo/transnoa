@@ -18,6 +18,11 @@ export function SolicitudActions({ requestId, status }: SolicitudActionsProps) {
     return <span className="text-xs text-slate-400">-</span>;
   }
 
+  const handleSign = async (formData: FormData) => {
+    await signRequest(formData);
+    setOpen(false);
+  };
+
   return (
     <>
       <button
@@ -34,7 +39,7 @@ export function SolicitudActions({ requestId, status }: SolicitudActionsProps) {
         title="Firma interna"
         description="Confirma que la informacion esta correcta antes de firmar."
       >
-        <form action={signRequest} className="space-y-4">
+        <form action={handleSign} className="space-y-4">
           <input type="hidden" name="requestId" value={requestId} />
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
             Al firmar, la solicitud queda bloqueada para cambios y pasa a

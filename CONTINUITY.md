@@ -1,25 +1,46 @@
 - Goal (incl. success criteria):
-  - Adjust Admin card layout, improve Colaboradores CTA visibility, and refine Panel flow card with role selector.
+  - Add Admin module tabs and implement requested sections (Solicitudes, Viaticos y retroactivos, Rendiciones, Pagos y correcciones, Reporte) with correct data, filters, and actions per spec.
 - Constraints/Assumptions:
   - Follow `AGENTS.md` repo rules and continuity ledger process.
   - Keep changes small; no new dependencies.
-  - Next.js App Router + Tailwind + Prisma already in use.
+  - Use existing Next.js router style, Tailwind, and DB layer in repo.
+  - Spanish copy for UI.
 - Key decisions:
-  - Re-encode offending source files to UTF-8 when invalid bytes are found.
+  - Lote corrections in Pagos y correcciones update the latest version in place (no new version).
 - State:
-  - Applied UI adjustments for Administracion, Colaboradores, and Panel.
+  - Admin module refactor continuing; report module renamed to Tesoreria and Excel exports updated.
 - Done:
-  - Previous UX and export updates shipped; build stable.
-  - Moved Admin rate button below date and compacted admin layout.
-  - Added primary styling to the "Nuevo colaborador" button.
-  - Moved Flow card above modules and added per-role highlights selector.
+  - Read `AGENTS.md` and current `CONTINUITY.md`.
+  - Added Admin module tab layout and split content by section.
+  - Added retroactive apply action and worker balance view in Admin tab.
+  - Added rendiciones data model, actions, UI form, and export route.
+  - Updated Admin page to await async searchParams.
+  - Added Admin payment actions (registrar pago + corregir lote) in Pagos y correcciones.
+  - Removed Tesoreria from main navigation and adjusted home/flow messaging.
+  - Grouped rendiciones by lote with total amount and workers list in Admin.
+  - Added bulk rendition form to apply same data to multiple collaborators.
+  - Added Solo pendientes/Todos toggle for bulk rendiciones selection.
+  - Added rendicion status filter and removed per-worker forms from rendiciones.
+  - Lote corrections now reset status to PENDING_SIGNATURE and remove existing signature.
+  - Modals close after actions complete across admin/solicitudes/tesoreria flows.
+  - Added modal body scroll and solicitud submission confirmation message.
+  - Renamed "Estandarizar" action to "Colocar lote" in Administracion.
+  - Removed "Estados clave" and "Base de datos activa" cards from Panel.
+  - Renamed Reportes module to Tesoreria in navigation and Admin tab.
+  - Updated report exports to Excel-compatible .xls output.
 - Now:
-  - Quick pass for any layout regressions.
+  - Verify Tesoreria label appears in navigation and report downloads open in Excel.
 - Next:
-  - Quick visual pass across affected pages.
+  - Validate payment/corrections flow and retroactive apply after changes.
+  - Add any missing polish or tests once schema migration is decided.
 - Open questions (UNCONFIRMED if needed):
-  - None.
+  - Required Excel report format/fields beyond "viaticos pagados".
+  - Should retroactive apply mark batches/items as PAID or move to READY_FOR_PAYMENT?
 - Working set (files/ids/commands):
-  - src/app/administracion/page.tsx
-  - src/app/colaboradores/page.tsx
-  - src/app/page.tsx
+  - `prisma/schema.prisma`
+  - `src/app/administracion/page.tsx`
+  - `src/app/administracion/RenditionForm.tsx`
+  - `src/app/actions/rates.ts`
+  - `src/app/actions/renditions.ts`
+  - `src/app/reportes/export/viaticos-pagados/route.ts`
+  - `src/lib/format.ts`

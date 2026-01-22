@@ -6,8 +6,8 @@ import { demoRoles, roleLabels, type DemoRole } from "@/lib/roles";
 const flowSteps = [
   "Jefe carga la solicitud con cuadrilla y conceptos diarios.",
   "Administracion valida, estandariza y asigna lote/fecha.",
-  "Jefe firma y la solicitud queda lista para tesoreria.",
-  "Tesoreria registra el pago y deja trazabilidad.",
+  "Jefe firma y la solicitud queda lista para pago.",
+  "Administracion registra el pago y valida el cierre.",
 ];
 
 const roleHighlights: Record<DemoRole, string[]> = {
@@ -24,12 +24,12 @@ const roleHighlights: Record<DemoRole, string[]> = {
   ADMIN: [
     "Validar solicitudes y estandarizar datos.",
     "Asignar lote y fecha de pago.",
-    "Actualizar viatico diario.",
+    "Registrar pagos y correcciones.",
   ],
   TESORERIA: [
-    "Registrar pagos y comprobantes.",
-    "Solicitar correcciones a administracion.",
-    "Exportar reportes de pagos.",
+    "Descargar reportes de pagos.",
+    "Controlar historico de viaticos.",
+    "Auditar cierres y rendiciones.",
   ],
 };
 

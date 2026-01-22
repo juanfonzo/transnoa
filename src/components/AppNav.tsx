@@ -7,9 +7,8 @@ const navItems = [
   { href: "/", label: "Panel" },
   { href: "/solicitudes", label: "Solicitudes" },
   { href: "/administracion", label: "Administracion" },
-  { href: "/tesoreria", label: "Tesoreria" },
   { href: "/colaboradores", label: "Colaboradores" },
-  { href: "/reportes", label: "Reportes" },
+  { href: "/reportes", label: "Tesoreria" },
 ];
 
 export function AppNav() {

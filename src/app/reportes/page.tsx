@@ -2,9 +2,9 @@ export default function ReportesPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h2 className="text-3xl font-semibold text-slate-900">Reportes</h2>
+        <h2 className="text-3xl font-semibold text-slate-900">Tesoreria</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Exportaciones rapidas para compartir resultados del demo.
+          Exportaciones para control y cierre de pagos.
         </p>
       </header>
 
@@ -20,7 +20,7 @@ export default function ReportesPage() {
             href="/reportes/export/solicitudes"
             className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600"
           >
-            Descargar CSV
+            Descargar Excel
           </a>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -32,7 +32,7 @@ export default function ReportesPage() {
             href="/reportes/export/pagos"
             className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600"
           >
-            Descargar CSV
+            Descargar Excel
           </a>
         </div>
       </section>

@@ -2,72 +2,129 @@
 
 import type { RequestStatus } from "@prisma/client";
 import { useState } from "react";
-import { adminCreateCorrection, adminStandardize } from "@/app/actions/requests";
+import { adminMarkPaid, adminUpdateLote } from "@/app/actions/requests";
 import { Modal } from "@/components/Modal";
 import { SubmitButton } from "@/components/SubmitButton";
 import { formatDateInput } from "@/lib/format";
 
-type AdminActionsProps = {
+type AdminPaymentActionsProps = {
   requestId: string;
   status: RequestStatus;
   loteNumber?: string | null;
   plannedPaymentDate?: Date | null;
+  paidAt?: Date | null;
+  paymentReference?: string | null;
 };
 
-export function AdminActions({
+export function AdminPaymentActions({
   requestId,
   status,
   loteNumber,
   plannedPaymentDate,
-}: AdminActionsProps) {
-  const [standardizeOpen, setStandardizeOpen] = useState(false);
-  const [correctionOpen, setCorrectionOpen] = useState(false);
+  paidAt,
+  paymentReference,
+}: AdminPaymentActionsProps) {
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [loteOpen, setLoteOpen] = useState(false);
 
-  const canStandardize = status === "SUBMITTED_TO_ADMIN" || status === "ADMIN_REVIEW";
-  const canCorrect = status === "TREASURY_RETURNED" || status === "ADMIN_CORRECTION";
+  const paymentLabel = paidAt ? "Editar pago" : "Registrar pago";
+  const canEditLote = !paidAt && status !== "PAID";
+  const paymentHint =
+    status === "PAID"
+      ? "Actualiza fecha y referencia del pago."
+      : "Confirma la fecha y referencia del deposito.";
 
-  if (!canStandardize && !canCorrect) {
-    return <span className="text-xs text-slate-400">-</span>;
-  }
-
-  const handleStandardize = async (formData: FormData) => {
-    await adminStandardize(formData);
-    setStandardizeOpen(false);
+  const handlePayment = async (formData: FormData) => {
+    await adminMarkPaid(formData);
+    setPaymentOpen(false);
   };
 
-  const handleCorrection = async (formData: FormData) => {
-    await adminCreateCorrection(formData);
-    setCorrectionOpen(false);
+  const handleLote = async (formData: FormData) => {
+    if (!canEditLote) return;
+    await adminUpdateLote(formData);
+    setLoteOpen(false);
   };
 
   return (
     <>
-      {canStandardize && (
+      <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={() => setStandardizeOpen(true)}
-          className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600"
+          onClick={() => setPaymentOpen(true)}
+          className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white"
         >
-          Colocar lote
+          {paymentLabel}
         </button>
-      )}
-      {canCorrect && (
         <button
           type="button"
-          onClick={() => setCorrectionOpen(true)}
-          className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600"
+          onClick={() => setLoteOpen(true)}
+          disabled={!canEditLote}
+          className={`rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide ${
+            canEditLote
+              ? "text-slate-600"
+              : "cursor-not-allowed text-slate-300"
+          }`}
+          title={
+            canEditLote
+              ? "Editar lote"
+              : "El lote ya fue pagado y no se puede modificar"
+          }
         >
-          Crear correccion
+          Corregir lote
         </button>
-      )}
+      </div>
 
       <Modal
-        open={standardizeOpen}
-        onClose={() => setStandardizeOpen(false)}
-        title="Colocar lote"
-        description="Coloca lote y fecha prevista antes de enviar a firma."
+        open={paymentOpen}
+        onClose={() => setPaymentOpen(false)}
+        title={paymentLabel}
+        description={paymentHint}
       >
-        <form action={handleStandardize} className="space-y-4">
+        <form action={handlePayment} className="space-y-4">
+          <input type="hidden" name="requestId" value={requestId} />
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="text-sm font-medium text-slate-700">
+              Fecha de pago
+              <input
+                type="date"
+                name="paidAt"
+                defaultValue={formatDateInput(paidAt ?? plannedPaymentDate)}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="text-sm font-medium text-slate-700">
+              Referencia bancaria
+              <input
+                name="paymentReference"
+                defaultValue={paymentReference ?? ""}
+                placeholder="DEP-0001"
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              />
+            </label>
+          </div>
+          <label className="text-sm font-medium text-slate-700">
+            Notas
+            <textarea
+              name="notes"
+              rows={3}
+              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            />
+          </label>
+          <SubmitButton
+            label="Guardar pago"
+            pendingLabel="Guardando..."
+            className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white"
+          />
+        </form>
+      </Modal>
+
+      <Modal
+        open={loteOpen}
+        onClose={() => setLoteOpen(false)}
+        title="Corregir lote y fecha"
+        description="Actualiza lote y fecha prevista desde administracion."
+      >
+        <form action={handleLote} className="space-y-4">
           <input type="hidden" name="requestId" value={requestId} />
           <div className="grid gap-4 md:grid-cols-2">
             <label className="text-sm font-medium text-slate-700">
@@ -90,7 +147,7 @@ export function AdminActions({
             </label>
           </div>
           <label className="text-sm font-medium text-slate-700">
-            Notas
+            Motivo
             <textarea
               name="notes"
               rows={3}
@@ -98,50 +155,7 @@ export function AdminActions({
             />
           </label>
           <SubmitButton
-            label="Enviar a firma"
-            pendingLabel="Guardando..."
-            className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white"
-          />
-        </form>
-      </Modal>
-
-      <Modal
-        open={correctionOpen}
-        onClose={() => setCorrectionOpen(false)}
-        title="Correccion solicitada"
-        description="Genera una nueva version con lote y fecha corregidos."
-      >
-        <form action={handleCorrection} className="space-y-4">
-          <input type="hidden" name="requestId" value={requestId} />
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="text-sm font-medium text-slate-700">
-              Nuevo lote
-              <input
-                name="loteNumber"
-                defaultValue={loteNumber ?? ""}
-                placeholder="L-2026-0003"
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="text-sm font-medium text-slate-700">
-              Nueva fecha de pago
-              <input
-                type="date"
-                name="plannedPaymentDate"
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-              />
-            </label>
-          </div>
-          <label className="text-sm font-medium text-slate-700">
-            Notas de correccion
-            <textarea
-              name="notes"
-              rows={3}
-              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-            />
-          </label>
-          <SubmitButton
-            label="Crear nueva version"
+            label="Guardar correccion"
             pendingLabel="Guardando..."
             className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white"
           />
@@ -150,4 +164,3 @@ export function AdminActions({
     </>
   );
 }
-

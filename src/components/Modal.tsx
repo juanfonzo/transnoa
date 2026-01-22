@@ -22,7 +22,7 @@ export function Modal({ open, title, description, onClose, children }: ModalProp
         onClick={onClose}
         role="presentation"
       />
-      <div className="relative w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
+      <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-xl">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
@@ -38,7 +38,7 @@ export function Modal({ open, title, description, onClose, children }: ModalProp
             Cerrar
           </button>
         </div>
-        <div className="mt-4">{children}</div>
+        <div className="mt-4 overflow-y-auto pr-1">{children}</div>
       </div>
     </div>
   );

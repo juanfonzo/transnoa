@@ -9,11 +9,26 @@ import { formatDateInput } from "@/lib/format";
 type TreasuryActionsProps = {
   requestId: string;
   plannedPaymentDate?: Date | null;
+  showCorrection?: boolean;
 };
 
-export function TreasuryActions({ requestId, plannedPaymentDate }: TreasuryActionsProps) {
+export function TreasuryActions({
+  requestId,
+  plannedPaymentDate,
+  showCorrection = true,
+}: TreasuryActionsProps) {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [correctionOpen, setCorrectionOpen] = useState(false);
+
+  const handlePayment = async (formData: FormData) => {
+    await markPaid(formData);
+    setPaymentOpen(false);
+  };
+
+  const handleCorrection = async (formData: FormData) => {
+    await requestCorrection(formData);
+    setCorrectionOpen(false);
+  };
 
   return (
     <>
@@ -24,13 +39,15 @@ export function TreasuryActions({ requestId, plannedPaymentDate }: TreasuryActio
       >
         Registrar pago
       </button>
-      <button
-        type="button"
-        onClick={() => setCorrectionOpen(true)}
-        className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600"
-      >
-        Solicitar correccion
-      </button>
+      {showCorrection && (
+        <button
+          type="button"
+          onClick={() => setCorrectionOpen(true)}
+          className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600"
+        >
+          Solicitar correccion
+        </button>
+      )}
 
       <Modal
         open={paymentOpen}
@@ -38,7 +55,7 @@ export function TreasuryActions({ requestId, plannedPaymentDate }: TreasuryActio
         title="Registrar pago"
         description="Confirma la fecha y referencia del deposito."
       >
-        <form action={markPaid} className="space-y-4">
+        <form action={handlePayment} className="space-y-4">
           <input type="hidden" name="requestId" value={requestId} />
           <div className="grid gap-4 md:grid-cols-2">
             <label className="text-sm font-medium text-slate-700">
@@ -75,38 +92,40 @@ export function TreasuryActions({ requestId, plannedPaymentDate }: TreasuryActio
         </form>
       </Modal>
 
-      <Modal
-        open={correctionOpen}
-        onClose={() => setCorrectionOpen(false)}
-        title="Solicitar correccion"
-        description="Informa el motivo y fecha sugerida."
-      >
-        <form action={requestCorrection} className="space-y-4">
-          <input type="hidden" name="requestId" value={requestId} />
-          <label className="text-sm font-medium text-slate-700">
-            Motivo
-            <textarea
-              name="reason"
-              rows={3}
-              placeholder="Ej: Banco no habil o cambio de fecha."
-              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+      {showCorrection && (
+        <Modal
+          open={correctionOpen}
+          onClose={() => setCorrectionOpen(false)}
+          title="Solicitar correccion"
+          description="Informa el motivo y fecha sugerida."
+        >
+          <form action={handleCorrection} className="space-y-4">
+            <input type="hidden" name="requestId" value={requestId} />
+            <label className="text-sm font-medium text-slate-700">
+              Motivo
+              <textarea
+                name="reason"
+                rows={3}
+                placeholder="Ej: Banco no habil o cambio de fecha."
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="text-sm font-medium text-slate-700">
+              Fecha sugerida
+              <input
+                type="date"
+                name="suggestedPaymentDate"
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              />
+            </label>
+            <SubmitButton
+              label="Enviar solicitud"
+              pendingLabel="Enviando..."
+              className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-700"
             />
-          </label>
-          <label className="text-sm font-medium text-slate-700">
-            Fecha sugerida
-            <input
-              type="date"
-              name="suggestedPaymentDate"
-              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-            />
-          </label>
-          <SubmitButton
-            label="Enviar solicitud"
-            pendingLabel="Enviando..."
-            className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-700"
-          />
-        </form>
-      </Modal>
+          </form>
+        </Modal>
+      )}
     </>
   );
 }

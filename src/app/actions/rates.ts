@@ -4,6 +4,10 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 
+async function getAdminActor() {
+  return prisma.user.findFirst({ where: { role: "ADMIN" } });
+}
+
 function parseDate(value: FormDataEntryValue | null) {
   if (typeof value !== "string" || value.trim() === "") {
     return null;
@@ -46,7 +50,7 @@ export async function createRateChange(formData: FormData) {
     return;
   }
 
-  const admin = await prisma.user.findFirst({ where: { role: "ADMIN" } });
+  const admin = await getAdminActor();
   if (!admin) {
     return;
   }
@@ -151,5 +155,68 @@ export async function createRateChange(formData: FormData) {
   });
 
   revalidatePath("/administracion");
+}
+
+export async function applyRetroactiveBatch(formData: FormData) {
+  const batchId = formData.get("batchId");
+  if (typeof batchId !== "string") {
+    return;
+  }
+
+  const admin = await getAdminActor();
+  if (!admin) {
+    return;
+  }
+
+  const batch = await prisma.retroactiveAdjustmentBatch.findUnique({
+    where: { id: batchId },
+    include: { items: true },
+  });
+
+  if (!batch || batch.status === "PAID" || batch.status === "CANCELLED") {
+    return;
+  }
+
+  const ledgerEntries = batch.items
+    .map((item) => {
+      const amount = Number(item.amountDiff);
+      if (!amount) {
+        return null;
+      }
+      return {
+        workerId: item.workerId,
+        type: amount > 0 ? "CREDIT" : "DEBIT",
+        amount: new Prisma.Decimal(Math.abs(amount)),
+        reason: `Ajuste retroactivo ${batch.periodMonth}`,
+        createdByUserId: admin.id,
+      };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+
+  await prisma.$transaction([
+    ...(ledgerEntries.length > 0
+      ? [prisma.workerViaticBalanceLedger.createMany({ data: ledgerEntries })]
+      : []),
+    prisma.retroactiveAdjustmentItem.updateMany({
+      where: { batchId: batch.id },
+      data: { status: "PAID" },
+    }),
+    prisma.retroactiveAdjustmentBatch.update({
+      where: { id: batch.id },
+      data: { status: "PAID" },
+    }),
+    prisma.auditLog.create({
+      data: {
+        entity: "retroactive_adjustment_batch",
+        entityId: batch.id,
+        action: "apply_retroactive_batch",
+        afterJson: { items: batch.items.length, periodMonth: batch.periodMonth },
+        userId: admin.id,
+      },
+    }),
+  ]);
+
+  revalidatePath("/administracion");
+  revalidatePath("/colaboradores");
 }
 

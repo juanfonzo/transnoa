@@ -20,3 +20,12 @@ export function formatDateInput(value?: Date | null) {
   return value.toISOString().slice(0, 10);
 }
 
+export function formatTimeInput(value?: Date | null) {
+  if (!value) {
+    return "";
+  }
+  const hours = String(value.getHours()).padStart(2, "0");
+  const minutes = String(value.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
