@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useFormState } from "react-dom";
 import { upsertRenditionBulk } from "@/app/actions/renditions";
 import { SubmitButton } from "@/components/SubmitButton";
 
@@ -21,6 +22,7 @@ type WorkerSelection = {
   name: string;
   legajo: string;
   isComplete: boolean;
+  availableViaticos: number;
 };
 
 type RenditionBulkFormProps = {
@@ -28,6 +30,13 @@ type RenditionBulkFormProps = {
 };
 
 type SelectionMode = "pending" | "all";
+
+function formatViaticos(value: number) {
+  return value.toLocaleString("es-AR", {
+    minimumFractionDigits: value % 1 === 0 ? 0 : 1,
+    maximumFractionDigits: 1,
+  });
+}
 
 function createEmptyLeg(): RenditionLegInput {
   return {
@@ -44,6 +53,13 @@ function createEmptyLeg(): RenditionLegInput {
 }
 
 export function RenditionBulkForm({ workers }: RenditionBulkFormProps) {
+  const [notice, setNotice] = useState<{
+    tone: "success" | "error";
+    message: string;
+  } | null>(null);
+  const [formState, formAction] = useFormState(upsertRenditionBulk, {
+    status: "idle",
+  });
   const pendingIds = useMemo(
     () =>
       workers
@@ -77,12 +93,59 @@ export function RenditionBulkForm({ workers }: RenditionBulkFormProps) {
 
   const selectedCount = selectedIds.length;
   const hasPending = pendingIds.length > 0;
+  const selectedAvailable = workers
+    .filter((worker) => selectedIds.includes(worker.requestWorkerId))
+    .map((worker) => worker.availableViaticos);
+  const maxAvailable = selectedAvailable.length
+    ? Math.min(...selectedAvailable)
+    : 0;
+
+  useEffect(() => {
+    if (formState.status === "idle") {
+      return;
+    }
+    let nextNotice: { tone: "success" | "error"; message: string };
+    if (formState.status === "error") {
+      nextNotice = {
+        tone: "error",
+        message: formState.message ?? "No se pudo guardar la rendicion.",
+      };
+    } else {
+      const balanceCount = formState.balanceCount ?? 0;
+    const balanceMessage =
+      balanceCount > 0
+        ? ` Se registro saldo deudor en cuenta corriente para ${balanceCount} colaborador${
+            balanceCount === 1 ? "" : "es"
+          }.`
+        : "";
+      nextNotice = {
+        tone: "success",
+        message: `${formState.message ?? "Rendicion generada."}${balanceMessage}`,
+      };
+    }
+    setNotice(nextNotice);
+    const timeout = setTimeout(() => setNotice(null), 6000);
+    return () => clearTimeout(timeout);
+  }, [formState.balanceCount, formState.message, formState.status]);
 
   return (
     <form
-      action={upsertRenditionBulk}
+      action={formAction}
       className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
     >
+      {notice && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`mb-3 rounded-xl border px-3 py-2 text-xs ${
+            notice.tone === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border-rose-200 bg-rose-50 text-rose-700"
+          }`}
+        >
+          {notice.message}
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-slate-900">Rendicion grupal</p>
@@ -144,6 +207,8 @@ export function RenditionBulkForm({ workers }: RenditionBulkFormProps) {
             <span>{worker.name}</span>
             <span className="text-slate-400">-</span>
             <span>{worker.legajo}</span>
+            <span className="text-slate-400">·</span>
+            <span>{formatViaticos(worker.availableViaticos)} viaticos</span>
           </label>
         ))}
       </div>
@@ -168,6 +233,22 @@ export function RenditionBulkForm({ workers }: RenditionBulkFormProps) {
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         <label className="text-sm font-medium text-slate-700">
+          Viaticos consumidos
+          <input
+            name="consumedViaticos"
+            type="number"
+            inputMode="decimal"
+            step="0.5"
+            min={0}
+            max={maxAvailable || undefined}
+            placeholder={maxAvailable ? formatViaticos(maxAvailable) : "0"}
+            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+          />
+          <span className="mt-1 block text-xs text-slate-500">
+            Disponible segun seleccion: {formatViaticos(maxAvailable)} viaticos.
+          </span>
+        </label>
+        <label className="text-sm font-medium text-slate-700">
           URL respaldo
           <input
             name="attachmentUrl"
@@ -175,6 +256,9 @@ export function RenditionBulkForm({ workers }: RenditionBulkFormProps) {
             className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
           />
         </label>
+      </div>
+
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
         <label className="text-sm font-medium text-slate-700">
           Notas
           <input

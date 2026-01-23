@@ -156,7 +156,7 @@ model ViaticRequestWorker {
   id                   String  @id @default(cuid())
   requestVersionId     String
   workerId             String
-  daysCount            Int
+  daysCount            Decimal @db.Decimal(6, 2)
   dailyAmount          Decimal @db.Decimal(12, 2)
   grossAmount          Decimal @db.Decimal(12, 2)
   balanceAppliedAmount Decimal @db.Decimal(12, 2) @default(0)
@@ -175,6 +175,7 @@ model ViaticRendition {
   requestWorkerId  String   @unique
   requestVersionId String
   workerId         String
+  consumedViaticos Decimal? @db.Decimal(6, 2)
   reason           String?
   vehiclePlate     String?
   attachmentUrl    String?
@@ -303,7 +304,7 @@ model RetroactiveAdjustmentItem {
   id              String           @id @default(cuid())
   batchId         String
   workerId        String
-  daysAffected    Int
+  daysAffected    Decimal          @db.Decimal(6, 2)
   amountDiff      Decimal          @db.Decimal(12, 2)
   status          AdjustmentStatus @default(DRAFT)
   relatedPaymentId String?

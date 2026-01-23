@@ -1,5 +1,5 @@
 - Goal (incl. success criteria):
-  - Resolve build/type errors and keep Admin/Tesoreria refactor stable and compiling.
+  - Implement configurable viaticos quantity (integer or 0.5) across requests, admin adjustments, and accounting flows.
 - Constraints/Assumptions:
   - Follow `AGENTS.md` repo rules and continuity ledger process.
   - Keep changes small; no new dependencies.
@@ -7,8 +7,12 @@
   - Spanish copy for UI.
 - Key decisions:
   - Lote corrections in Pagos y correcciones update the latest version in place (no new version).
+  - 0.5 viatico only applies on the last day of a request.
+  - Balance adjustments are stored as monetary values at the current viatico rate at time of adjustment.
+  - No viatico quantity edits after a request is marked paid.
+  - Unused viaticos in rendicion create a DEBIT (saldo deudor) for the collaborator.
 - State:
-  - Build error fixes applied for retroactive ledger typing and Excel export decimals.
+  - Implementing fractional viaticos (0.5 on last day) with UI/server updates and schema adjustments for decimal days.
 - Done:
   - Read `AGENTS.md` and current `CONTINUITY.md`.
   - Added Admin module tab layout and split content by section.
@@ -30,11 +34,22 @@
   - Updated report exports to Excel-compatible .xls output.
   - Fixed `applyRetroactiveBatch` ledger entries typing to use `BalanceType`.
   - Converted Decimal fields to numbers in Excel export rows.
+  - Updated schema to allow decimal days for viaticos and retroactive items.
+  - Added last-day half-day toggle in solicitudes wizard and wired to server action.
+  - Adjusted request creation to compute fractional viaticos per worker.
+  - Updated retroactive day calculation to allow half-day increments.
+  - Display retroactive days with decimals in Administracion.
+  - Added explicit "Editar fechas" CTA and disabled Next button when step is incomplete in Solicitud wizard.
+  - Added consumed viaticos input in rendiciones and persisted it per worker.
+  - Added balance ledger adjustments when consumed viaticos are less than available.
+  - Switched unused viaticos ledger entries to DEBIT (saldo deudor) on rendicion save.
+  - Added success/error notifications for rendicion bulk submit, including saldo deudor notice.
+  - Fixed TypeScript null narrowing in rendicion bulk validation.
 - Now:
-  - Await build rerun to confirm the TypeScript error is resolved.
+  - Review remaining UI/reporting spots to display fractional viaticos correctly.
 - Next:
-  - Re-check build if errors persist and adjust based on logs.
-  - Validate payment/corrections flow and retroactive apply status when confirmed.
+  - Map affected modules (solicitudes, administracion, rendiciones, tesoreria/reportes).
+  - Implement and validate end-to-end changes.
 - Open questions (UNCONFIRMED if needed):
   - Required Excel report format/fields beyond "viaticos pagados".
   - Should retroactive apply mark batches/items as PAID or move to READY_FOR_PAYMENT?

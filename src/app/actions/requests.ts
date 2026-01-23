@@ -73,10 +73,10 @@ export async function createDemoRequest() {
   });
 
   const dailyAmount = latestRate?.amount ?? new Prisma.Decimal(25000);
-  const daysCount = 3;
+  const calendarDays = 3;
   const startDate = new Date();
   startDate.setHours(0, 0, 0, 0);
-  const endDate = addDays(startDate, daysCount - 1);
+  const endDate = addDays(startDate, calendarDays - 1);
 
   const request = await prisma.viaticRequest.create({
     data: {
@@ -104,11 +104,11 @@ export async function createDemoRequest() {
     orderBy: { name: "asc" },
   });
 
-  const grossAmount = dailyAmount.mul(daysCount);
+  const grossAmount = dailyAmount.mul(calendarDays);
   const workerData = workers.map((worker) => ({
     requestVersionId: version.id,
     workerId: worker.id,
-    daysCount,
+    daysCount: calendarDays,
     dailyAmount,
     grossAmount,
     balanceAppliedAmount: new Prisma.Decimal(0),
@@ -119,7 +119,7 @@ export async function createDemoRequest() {
     await prisma.viaticRequestWorker.createMany({ data: workerData });
   }
 
-  const concepts = Array.from({ length: daysCount }, (_, index) => ({
+  const concepts = Array.from({ length: calendarDays }, (_, index) => ({
     requestVersionId: version.id,
     date: addDays(startDate, index),
     conceptText: index === 0 ? "Montaje" : "Trabajo operativo",
@@ -181,11 +181,13 @@ export async function createRequestWizard(formData: FormData) {
     return;
   }
 
-  const daysCount = diffDaysInclusive(startDate, endDate);
+  const calendarDays = diffDaysInclusive(startDate, endDate);
   const latestRate = await prisma.viaticRateHistory.findFirst({
     orderBy: { effectiveFrom: "desc" },
   });
   const dailyAmount = latestRate?.amount ?? new Prisma.Decimal(25000);
+  const lastDayHalf = formData.get("lastDayHalf") === "1";
+  const lastDayKey = endDate.toISOString().slice(0, 10);
 
   const requestNumber = await generateRequestNumber();
   const request = await prisma.viaticRequest.create({
@@ -211,6 +213,7 @@ export async function createRequestWizard(formData: FormData) {
         location: String(formData.get("location") || ""),
         concepts: conceptLines,
         dayPlan,
+        lastDayHalf,
       },
     },
   });
@@ -219,8 +222,11 @@ export async function createRequestWizard(formData: FormData) {
     where: { id: { in: workerIds } },
   });
 
-  const hasDayPlan = Object.keys(dayPlan).length > 0;
+  const hasDayPlan = Object.values(dayPlan).some(
+    (value) => Array.isArray(value.workerIds) && value.workerIds.length > 0
+  );
   const workerDayMap = new Map<string, number>();
+  const lastDayWorkers = new Set<string>();
 
   if (hasDayPlan) {
     Object.entries(dayPlan).forEach(([dateKey, value]) => {
@@ -233,23 +239,29 @@ export async function createRequestWizard(formData: FormData) {
       const uniqueWorkers = Array.from(new Set(workerList));
       uniqueWorkers.forEach((workerId) => {
         workerDayMap.set(workerId, (workerDayMap.get(workerId) ?? 0) + 1);
+        if (dateKey === lastDayKey) {
+          lastDayWorkers.add(workerId);
+        }
       });
     });
   }
 
   const workerData = selectedWorkers
     .map((worker) => {
-      const parsedDays = hasDayPlan
+      const baseDays = hasDayPlan
         ? workerDayMap.get(worker.id) ?? 0
-        : daysCount;
-      if (hasDayPlan && parsedDays <= 0) {
+        : calendarDays;
+      if (hasDayPlan && baseDays <= 0) {
         return null;
       }
-      const grossAmount = dailyAmount.mul(parsedDays);
+      const applyHalf =
+        lastDayHalf && (!hasDayPlan || lastDayWorkers.has(worker.id));
+      const viaticDays = applyHalf ? Math.max(0.5, baseDays - 0.5) : baseDays;
+      const grossAmount = dailyAmount.mul(viaticDays);
       return {
         requestVersionId: version.id,
         workerId: worker.id,
-        daysCount: parsedDays,
+        daysCount: viaticDays,
         dailyAmount,
         grossAmount,
         balanceAppliedAmount: new Prisma.Decimal(0),
@@ -286,7 +298,7 @@ export async function createRequestWizard(formData: FormData) {
   } else {
     const concepts =
       conceptLines.length > 0 ? conceptLines : ["Concepto general"];
-    const dayConcepts = Array.from({ length: daysCount }, (_, index) =>
+    const dayConcepts = Array.from({ length: calendarDays }, (_, index) =>
       concepts.map((concept) => ({
         requestVersionId: version.id,
         date: addDays(startDate, index),

@@ -101,10 +101,11 @@ export async function createRateChange(formData: FormData) {
 
     version.workers.forEach((worker) => {
       if (!worker.dailyAmount.equals(oldRate.amount)) return;
-      const scaledDays = Math.max(
-        1,
-        Math.round((worker.daysCount * overlapped) / rangeDays)
-      );
+      const viaticDays = Number(worker.daysCount);
+      if (!viaticDays) return;
+      const scaled = (viaticDays * overlapped) / rangeDays;
+      if (!scaled) return;
+      const scaledDays = Math.max(0.5, Math.round(scaled * 2) / 2);
       const current = workerMap.get(worker.workerId) ?? {
         days: 0,
         amount: new Prisma.Decimal(0),

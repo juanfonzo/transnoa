@@ -67,10 +67,25 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
   const [concepts, setConcepts] = useState("");
   const [selectedWorkers, setSelectedWorkers] = useState<Record<string, boolean>>({});
   const [dayAssignments, setDayAssignments] = useState<Record<string, DayAssignment>>({});
+  const [lastDayHalf, setLastDayHalf] = useState(false);
   const router = useRouter();
 
   const daysCount = diffDays(startDate, endDate);
   const dates = useMemo(() => buildDates(startDate, endDate), [startDate, endDate]);
+  const hasAssignments = useMemo(
+    () =>
+      Object.values(dayAssignments).some(
+        (assignment) => assignment.workerIds.length > 0
+      ),
+    [dayAssignments]
+  );
+  const lastDate = dates[dates.length - 1];
+  const lastDayWorkerIds = useMemo(() => {
+    if (!lastDate) {
+      return new Set<string>();
+    }
+    return new Set(dayAssignments[lastDate]?.workerIds ?? []);
+  }, [dayAssignments, lastDate]);
   const selectedWorkerList = useMemo(
     () => workers.filter((worker) => selectedWorkers[worker.id]),
     [selectedWorkers, workers]
@@ -117,9 +132,32 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
     return counts;
   }, [dayPlanPayload]);
 
+  useEffect(() => {
+    if (dates.length === 0) {
+      setLastDayHalf(false);
+    }
+  }, [dates.length]);
+
+  const getViaticDays = (workerId: string) => {
+    const baseDays = hasAssignments ? workerDayCounts[workerId] ?? 0 : daysCount;
+    if (hasAssignments && baseDays <= 0) {
+      return 0;
+    }
+    if (!lastDayHalf) {
+      return baseDays;
+    }
+    const applyHalf = !hasAssignments || lastDayWorkerIds.has(workerId);
+    return applyHalf ? Math.max(0.5, baseDays - 0.5) : baseDays;
+  };
+
+  const formatViaticDays = (value: number) =>
+    value.toLocaleString("es-AR", {
+      minimumFractionDigits: value % 1 === 0 ? 0 : 1,
+      maximumFractionDigits: 1,
+    });
+
   const totalAmount = selectedWorkerList.reduce((sum, worker) => {
-    const assignedDays = workerDayCounts[worker.id] ?? 0;
-    const days = assignedDays || daysCount;
+    const days = getViaticDays(worker.id);
     return sum + days * dailyAmount;
   }, 0);
 
@@ -200,6 +238,7 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
           <input type="hidden" name="location" value={location} />
           <input type="hidden" name="concepts" value={concepts} />
           <input type="hidden" name="dayPlan" value={JSON.stringify(dayPlanPayload)} />
+          <input type="hidden" name="lastDayHalf" value={lastDayHalf ? "1" : "0"} />
           {selectedWorkerList.map((worker) => (
             <input key={worker.id} type="hidden" name="workerIds" value={worker.id} />
           ))}
@@ -313,9 +352,50 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
               <p className="text-sm text-slate-600">
                 Define que trabajadores participan cada dia y los conceptos asociados.
               </p>
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      Medio viatico en el ultimo dia
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Aplica 0,5 viatico solo para el dia de regreso.
+                    </p>
+                  </div>
+                  <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={lastDayHalf}
+                      disabled={dates.length === 0}
+                      onChange={(event) => setLastDayHalf(event.target.checked)}
+                    />
+                    0,5
+                  </label>
+                </div>
+                {lastDayHalf && hasAssignments && lastDayWorkerIds.size === 0 && (
+                  <p className="mt-2 text-xs text-amber-600">
+                    Selecciona colaboradores en el ultimo dia para aplicar el medio
+                    viatico.
+                  </p>
+                )}
+                {lastDayHalf && !hasAssignments && (
+                  <p className="mt-2 text-xs text-slate-500">
+                    Se aplicara a todos los colaboradores.
+                  </p>
+                )}
+              </div>
               {dates.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-500">
                   Selecciona un rango de fechas para continuar.
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={() => setStep(0)}
+                      className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600"
+                    >
+                      Editar fechas
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -414,7 +494,7 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
                     Periodo
                   </span>
                   <span className="font-semibold text-slate-900">
-                    {startDate || "-"} a {endDate || "-"} ({daysCount} dias)
+                    {startDate || "-"} a {endDate || "-"} ({daysCount} dias calendario)
                   </span>
                 </div>
               </div>
@@ -427,7 +507,7 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
                     <li key={worker.id} className="flex justify-between">
                       <span>{worker.name}</span>
                       <span className="text-slate-500">
-                        {workerDayCounts[worker.id] || daysCount} dias
+                        {formatViaticDays(getViaticDays(worker.id))} viatico(s)
                       </span>
                     </li>
                   ))}
@@ -473,7 +553,8 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
               <button
                 type="button"
                 onClick={() => canContinue[step] && setStep((prev) => prev + 1)}
-                className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white"
+                disabled={!canContinue[step]}
+                className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Siguiente
               </button>

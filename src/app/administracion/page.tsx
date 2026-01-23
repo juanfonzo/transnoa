@@ -433,7 +433,12 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                             {item.worker.name}
                           </span>
                           <span className="text-slate-600">
-                            {item.daysAffected} dias x{" "}
+                            {Number(item.daysAffected).toLocaleString("es-AR", {
+                              minimumFractionDigits:
+                                Number(item.daysAffected) % 1 === 0 ? 0 : 1,
+                              maximumFractionDigits: 1,
+                            })}{" "}
+                            dias x{" "}
                             {formatCurrency(Number(item.amountDiff))}
                           </span>
                         </div>
@@ -687,6 +692,7 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                           isComplete: Boolean(
                             entry.rendition && entry.rendition.legs.length > 0
                           ),
+                          availableViaticos: Number(entry.daysCount),
                         }))}
                       />
                     </div>
