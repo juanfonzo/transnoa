@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useFormState } from "react-dom";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { upsertRenditionBulk } from "@/app/actions/renditions";
 import { SubmitButton } from "@/components/SubmitButton";
 
@@ -57,7 +56,7 @@ export function RenditionBulkForm({ workers }: RenditionBulkFormProps) {
     tone: "success" | "error";
     message: string;
   } | null>(null);
-  const [formState, formAction] = useFormState(upsertRenditionBulk, {
+  const [formState, formAction] = useActionState(upsertRenditionBulk, {
     status: "idle",
   });
   const pendingIds = useMemo(

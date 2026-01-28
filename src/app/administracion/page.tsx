@@ -104,6 +104,7 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
   const showViaticos = activeTab === "viaticos";
   const showRendiciones = activeTab === "rendiciones";
   const showPagos = activeTab === "pagos";
+  const showTesoreria = activeTab === "reporte";
 
   const [
     adminRequests,
@@ -113,6 +114,7 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
     paymentRequests,
     renditionVersions,
     renditionWorkers,
+    tesoreriaVersions,
   ] = await Promise.all([
     showSolicitudes
       ? prisma.viaticRequest.findMany({
@@ -207,6 +209,26 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
     showRendiciones
       ? prisma.worker.findMany({ orderBy: { name: "asc" } })
       : Promise.resolve([]),
+    showTesoreria
+      ? prisma.viaticRequestVersion.findMany({
+          where: {
+            request: { status: "PAID" },
+            payment: { isNot: null },
+          },
+          include: {
+            payment: true,
+            workers: {
+              include: {
+                worker: true,
+                rendition: {
+                  include: { legs: { orderBy: { orderIndex: "asc" } } },
+                },
+              },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        })
+      : Promise.resolve([]),
   ]);
 
   const statusCounts = adminRequests.reduce<Record<string, number>>(
@@ -234,6 +256,33 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
     }
     return true;
   });
+
+  const tesoreriaRows = tesoreriaVersions
+    .map((version) => {
+      const workers = version.workers ?? [];
+      const isComplete =
+        workers.length > 0 &&
+        workers.every(
+          (entry) => entry.rendition && entry.rendition.legs.length > 0
+        );
+      if (!isComplete) {
+        return null;
+      }
+      const totalAmount = workers.reduce(
+        (sum, entry) => sum + Number(entry.netAmount),
+        0
+      );
+      return {
+        id: version.id,
+        lote: version.loteNumber ?? "Sin lote",
+        paidAt: version.payment?.paidAt ?? null,
+        totalAmount,
+        workers: workers
+          .map((entry) => entry.worker.name)
+          .sort((a, b) => a.localeCompare(b)),
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => Boolean(row));
 
   return (
     <div className="space-y-6">
@@ -667,11 +716,11 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                             ))}
                           </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 text-xs">
-                          <span className="rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
-                            {formatCurrency(totalAmount)}
-                          </span>
-                          <span
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                      {formatCurrency(totalAmount)}
+                    </span>
+                    <span
                             className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${
                               isComplete
                                 ? "bg-emerald-100 text-emerald-700"
@@ -680,6 +729,11 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                           >
                             {isComplete ? "Completa" : "Pendiente"}
                           </span>
+                          {isComplete && (
+                            <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+                              Enviado a tesoreria
+                            </span>
+                          )}
                         </div>
                       </div>
                     </summary>
@@ -780,21 +834,75 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
       )}
 
       {activeTab === "reporte" && (
-        <section className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h3 className="text-lg font-semibold text-slate-900">
-              Viaticos pagados
-            </h3>
-            <p className="mt-2 text-sm text-slate-600">
-              Exporta pagos con colaborador, lote, monto y rendicion asociada.
-            </p>
-            <a
-              href="/reportes/export/viaticos-pagados"
-              className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600"
-            >
-              Descargar Excel
-            </a>
+        <section className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h3 className="text-lg font-semibold text-slate-900">
+                Viaticos pagados
+              </h3>
+              <p className="mt-2 text-sm text-slate-600">
+                Exporta pagos con colaborador, lote, monto y rendicion asociada.
+              </p>
+              <a
+                href="/reportes/export/viaticos-pagados"
+                className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600"
+              >
+                Descargar Excel
+              </a>
+            </div>
           </div>
+
+          {tesoreriaRows.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+              No hay rendiciones enviadas a tesoreria.
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3">Nro lote</th>
+                    <th className="px-4 py-3">Fecha pago</th>
+                    <th className="px-4 py-3">Monto</th>
+                    <th className="px-4 py-3">Colaboradores</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {tesoreriaRows.map((row) => (
+                    <tr key={row.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 font-semibold text-slate-900">
+                        {row.lote}
+                      </td>
+                      <td className="px-4 py-3">
+                        {row.paidAt ? (
+                          <span className="text-sm font-semibold text-slate-900">
+                            {formatDate(row.paidAt)}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-500">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-slate-900">
+                        {formatCurrency(row.totalAmount)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-2">
+                          {row.workers.map((worker) => (
+                            <span
+                              key={worker}
+                              className="rounded-full border border-slate-200 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600"
+                            >
+                              {worker}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
       )}
     </div>

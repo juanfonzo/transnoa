@@ -1,5 +1,5 @@
 - Goal (incl. success criteria):
-  - Implement configurable viaticos quantity (integer or 0.5) across requests, admin adjustments, and accounting flows.
+  - Add Tesoreria table in Administracion showing rendiciones-linked viaticos (lote, fecha de pago, monto, colaboradores) and display "Enviado a tesoreria" once a rendicion is saved/confirmed.
 - Constraints/Assumptions:
   - Follow `AGENTS.md` repo rules and continuity ledger process.
   - Keep changes small; no new dependencies.
@@ -12,7 +12,7 @@
   - No viatico quantity edits after a request is marked paid.
   - Unused viaticos in rendicion create a DEBIT (saldo deudor) for the collaborator.
 - State:
-  - Implementing fractional viaticos (0.5 on last day) with UI/server updates and schema adjustments for decimal days.
+  - Tesoreria table wired to rendiciones data with completion-based filtering and status badge.
 - Done:
   - Read `AGENTS.md` and current `CONTINUITY.md`.
   - Added Admin module tab layout and split content by section.
@@ -45,19 +45,19 @@
   - Switched unused viaticos ledger entries to DEBIT (saldo deudor) on rendicion save.
   - Added success/error notifications for rendicion bulk submit, including saldo deudor notice.
   - Fixed TypeScript null narrowing in rendicion bulk validation.
+  - Added Tesoreria table in Administracion to list rendiciones completas by lote.
+  - Added "Enviado a tesoreria" badge when rendicion is complete.
+  - Migrated RenditionBulkForm to React.useActionState to clear Next warning.
 - Now:
-  - Review remaining UI/reporting spots to display fractional viaticos correctly.
+  - All requested changes completed; monitoring for follow-up.
 - Next:
-  - Map affected modules (solicitudes, administracion, rendiciones, tesoreria/reportes).
-  - Implement and validate end-to-end changes.
+  - Add filters/export tweaks if requested.
 - Open questions (UNCONFIRMED if needed):
-  - Required Excel report format/fields beyond "viaticos pagados".
-  - Should retroactive apply mark batches/items as PAID or move to READY_FOR_PAYMENT?
 - Working set (files/ids/commands):
-  - `prisma/schema.prisma`
   - `src/app/administracion/page.tsx`
-  - `src/app/administracion/RenditionForm.tsx`
-  - `src/app/actions/rates.ts`
   - `src/app/actions/renditions.ts`
-  - `src/app/reportes/export/viaticos-pagados/route.ts`
-  - `src/lib/format.ts`
+  - `src/app/administracion/RenditionForm.tsx`
+
+
+
+
