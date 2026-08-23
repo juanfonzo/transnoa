@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "protected": [
+    ".git/**",
+    ".env",
+    ".env.local",
+    ".env.development",
+    ".env.production",
+    ".next/**",
+    "node_modules/**",
+    "CONTINUITY.md"
+  ],
+  "agents": {
+    "planificacion_producto": {
+      "allowed": ["docs/product/**", "docs/intake/**", "docs/changes/**", "docs/backlog/**", "docs/ai/DECISIONS.md"]
+    },
+    "arquitectura": {
+      "allowed": ["docs/technical/**", "docs/ai/DECISIONS.md"]
+    },
+    "implementador_typescript": {
+      "allowed": ["src/**", "prisma/**", "public/**", "scripts/**", "package.json", "next.config.*", "tsconfig.json", "eslint.config.*", "postcss.config.*", "docs/technical/**", "docs/backlog/**", "docs/ai/DECISIONS.md"]
+    },
+    "diagnostico": { "allowed": [] },
+    "qa_seguridad": { "allowed": [] },
+    "refinamiento_kit": {
+      "allowed": ["AGENTS.md", ".agents/**", ".codex/**", ".githooks/**", ".github/workflows/ai-dev-kit-check.yml", ".github/workflows/encoding-check.yml", ".github/workflows/quality.yml", ".env.example", ".gitignore", "docs/ai/**", "docs/kit-improvement/**", "GUIA_USO_CODEX_KIT.md", "GUIA_DESARROLLADOR.md", "LESSONS.md", "scripts/ai-dev-kit/**", "scripts/check-mojibake.mjs", "scripts/install-githooks.mjs", "eslint.config.*", "package.json"]
+    }
+  }
+}

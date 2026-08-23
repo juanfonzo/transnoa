@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "description": "Invariantes de Transnoa y de la factory Direct-First que no deben perderse al refinar el kit.",
+  "rules": [
+    {
+      "id": "factory-direct-first",
+      "path": "AGENTS.md",
+      "must_include": ["Menos agentes, más skills", "Direct-First", "spawn=false", "DELEGATION_GATE"]
+    },
+    {
+      "id": "factory-single-writer",
+      "path": "AGENTS.md",
+      "must_include": ["un rol primario", "un único ownership de escritura", "No permitir escritores concurrentes"]
+    },
+    {
+      "id": "factory-one-delegation",
+      "path": "docs/ai/subagent-policy.json",
+      "must_include": ["\"default_spawn\": false", "\"max_total_per_task\": 1", "\"second_spawn\": \"forbidden\""]
+    },
+    {
+      "id": "transnoa-demo-security",
+      "path": "docs/ai/PROJECT_CONTEXT.md",
+      "must_include": ["demo_role", "no autenticación ni RBAC", "DNI", "CBU"]
+    },
+    {
+      "id": "transnoa-domain-invariants",
+      "path": ".agents/skills/implementacion-nextjs/references/transnoa-implementation.md",
+      "must_include": ["PENDING_SIGNATURE", "Medio viático", "débito", "AuditLog"]
+    },
+    {
+      "id": "transnoa-prisma-safety",
+      "path": ".agents/skills/evolucion-prisma-postgres/SKILL.md",
+      "must_include": ["backfills idempotentes", "rollback", "accept-data-loss", "identificar el destino"]
+    },
+    {
+      "id": "transnoa-ui-system",
+      "path": ".agents/skills/diseno-ui-ux-transnoa/references/design-system-transnoa.md",
+      "must_include": ["max-w-6xl", "amber, emerald y sky", "StatusPill", "zoom/DPR"]
+    },
+    {
+      "id": "transnoa-environment-safety",
+      "path": "docs/ai/ENVIRONMENT_POLICY.md",
+      "must_include": ["No imprimir connection strings", "identificar el destino", "completada-en-demo"]
+    },
+    {
+      "id": "transnoa-utf8",
+      "path": "docs/ai/UTF8_POLICY.md",
+      "must_include": ["UTF-8", "acentos", "español"]
+    }
+  ]
+}

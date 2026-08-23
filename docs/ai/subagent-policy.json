@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "default_spawn": false,
+  "max_active": 1,
+  "max_total_per_task": 1,
+  "second_spawn": "forbidden",
+  "after_delegation": "continue_in_main_thread",
+  "allowed_reasons": [
+    "explicit_user_request",
+    "context_isolation",
+    "read_only_independent_review",
+    "nontrivial_diagnosis",
+    "isolated_long_running_writer"
+  ],
+  "writer_requires_explicit_request": true,
+  "read_only_agents": [
+    "planificacion_producto",
+    "arquitectura",
+    "diagnostico",
+    "qa_seguridad",
+    "refinamiento_kit"
+  ]
+}

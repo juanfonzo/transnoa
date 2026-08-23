@@ -1,0 +1,40 @@
+name: AI Dev Kit Check
+
+on:
+  pull_request:
+    paths:
+      - "AGENTS.md"
+      - ".agents/**"
+      - ".codex/**"
+      - "docs/ai/**"
+      - "docs/kit-improvement/**"
+      - "scripts/ai-dev-kit/**"
+      - "GUIA_USO_CODEX_KIT.md"
+      - "GUIA_DESARROLLADOR.md"
+      - "package.json"
+      - ".github/workflows/ai-dev-kit-check.yml"
+  push:
+    paths:
+      - "AGENTS.md"
+      - ".agents/**"
+      - ".codex/**"
+      - "docs/ai/**"
+      - "docs/kit-improvement/**"
+      - "scripts/ai-dev-kit/**"
+      - "GUIA_USO_CODEX_KIT.md"
+      - "GUIA_DESARROLLADOR.md"
+      - "package.json"
+      - ".github/workflows/ai-dev-kit-check.yml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run kit:check
+      - run: npm run kit:test

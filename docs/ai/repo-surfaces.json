@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "surfaces": [
+    {
+      "id": "nextjs-app",
+      "label": "Aplicación Next.js",
+      "paths": ["src/app/**", "src/components/**", "src/lib/**", "public/**", "docs/technical/**", "next.config.*", "tsconfig.json", "eslint.config.*", "package.json"],
+      "agent": "implementador_typescript",
+      "skills": ["implementacion-nextjs", "diseno-ui-ux-transnoa", "integracion-externa-resiliente"],
+      "working_directory": ".",
+      "checks": [
+        { "id": "encoding", "command": "npm run check:encoding", "when": "text-change" },
+        { "id": "typecheck", "command": "npm run typecheck", "when": "typescript-change" },
+        { "id": "lint", "command": "npm run lint", "when": "source-change" },
+        { "id": "ui", "command": "npm run kit:ui-check", "when": "visible-ui" },
+        { "id": "build", "command": "npm run build", "when": "level>=3-or-release" },
+        { "id": "browser", "command": "browser validation", "when": "visible-ui" }
+      ]
+    },
+    {
+      "id": "prisma-postgres",
+      "label": "Prisma y PostgreSQL",
+      "paths": ["prisma/**", "src/lib/prisma.ts", "src/app/actions/**", "scripts/*.sql"],
+      "agent": "implementador_typescript",
+      "skills": ["evolucion-prisma-postgres", "implementacion-nextjs"],
+      "working_directory": ".",
+      "checks": [
+        { "id": "prisma-validate", "command": "npm run prisma:validate", "when": "schema-change" },
+        { "id": "prisma-generate", "command": "npm run prisma:generate", "when": "schema-change" },
+        { "id": "typecheck", "command": "npm run typecheck", "when": "consumer-change" },
+        { "id": "db-scenario", "command": "manual safe scenario", "when": "money-or-data-change" }
+      ]
+    },
+    {
+      "id": "ai-dev-kit",
+      "label": "Kit Dev IA",
+      "paths": ["AGENTS.md", ".agents/**", ".codex/**", "docs/ai/**", "docs/kit-improvement/**", "scripts/ai-dev-kit/**", "GUIA_USO_CODEX_KIT.md", "GUIA_DESARROLLADOR.md", "LESSONS.md"],
+      "agent": "refinamiento_kit",
+      "skills": ["refinamiento-kit"],
+      "working_directory": ".",
+      "checks": [
+        { "id": "kit-check", "command": "npm run kit:check", "when": "always" },
+        { "id": "kit-test", "command": "npm run kit:test", "when": "always" },
+        { "id": "encoding", "command": "npm run check:encoding", "when": "always" }
+      ]
+    },
+    {
+      "id": "automation",
+      "label": "Automatización y operaciones locales",
+      "paths": [".github/**", ".githooks/**", "scripts/**", ".gitignore", ".env.example"],
+      "agent": "implementador_typescript",
+      "skills": ["implementacion-nextjs", "refinamiento-kit"],
+      "working_directory": ".",
+      "checks": [
+        { "id": "encoding", "command": "npm run check:encoding", "when": "text-change" },
+        { "id": "manual", "command": "review command safety", "when": "script-or-workflow-change" }
+      ]
+    },
+    {
+      "id": "product-context",
+      "label": "Producto, cambios y backlog",
+      "paths": ["requerimientos.md", "docs/product/**", "docs/intake/**", "docs/changes/**", "docs/backlog/**"],
+      "agent": "planificacion_producto",
+      "skills": ["intake-proyecto", "cambio-cliente", "faltantes", "refinamiento-backlog", "prd-tecnico", "backlog-tecnico"],
+      "working_directory": ".",
+      "checks": [
+        { "id": "encoding", "command": "npm run check:encoding", "when": "text-change" },
+        { "id": "review", "command": "manual criteria review", "when": "always" }
+      ]
+    }
+  ]
+}

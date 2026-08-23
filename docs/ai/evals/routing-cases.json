@@ -1,0 +1,73 @@
+[
+  {
+    "id": "copy-small",
+    "prompt": "Cambiar un texto visible sin lógica.",
+    "expected_role": "implementador_typescript",
+    "expected_skill": "implementacion-nextjs",
+    "spawn": false
+  },
+  {
+    "id": "request-vague",
+    "prompt": "Mejorar el seguimiento de viáticos.",
+    "expected_role": "planificacion_producto",
+    "expected_skill": "refinamiento-backlog",
+    "spawn": false
+  },
+  {
+    "id": "missing-money-rule",
+    "prompt": "Crear un ajuste sin definir cómo impacta el saldo.",
+    "expected_role": "planificacion_producto",
+    "expected_skill": "faltantes",
+    "spawn": false
+  },
+  {
+    "id": "fullstack-slice",
+    "prompt": "Agregar una pantalla con Server Action y persistencia Prisma.",
+    "expected_role": "implementador_typescript",
+    "expected_skill": "implementacion-nextjs",
+    "spawn": false
+  },
+  {
+    "id": "ui-redesign",
+    "prompt": "Rediseñar la bandeja de administración preservando acciones.",
+    "expected_role": "implementador_typescript",
+    "expected_skill": "diseno-ui-ux-transnoa",
+    "spawn": false
+  },
+  {
+    "id": "prisma-change",
+    "prompt": "Agregar una relación y backfill al esquema Prisma.",
+    "expected_role": "implementador_typescript",
+    "expected_skill": "evolucion-prisma-postgres",
+    "spawn": false
+  },
+  {
+    "id": "bug-routine",
+    "prompt": "Un pago se registra dos veces; reproducir y corregir.",
+    "expected_role": "diagnostico",
+    "expected_skill": "diagnostico",
+    "spawn": false
+  },
+  {
+    "id": "qa-routine",
+    "prompt": "Revisar el diff contra criterios y seguridad.",
+    "expected_role": "qa_seguridad",
+    "expected_skill": "verificacion",
+    "spawn": false
+  },
+  {
+    "id": "kit-change",
+    "prompt": "Mejorar el routing de skills con evidencia.",
+    "expected_role": "refinamiento_kit",
+    "expected_skill": "refinamiento-kit",
+    "spawn": false
+  },
+  {
+    "id": "explicit-read-review",
+    "prompt": "Delegá una revisión independiente read-only de este cambio crítico.",
+    "expected_role": "qa_seguridad",
+    "expected_skill": "verificacion",
+    "spawn": true,
+    "delegation_reason": "explicit_user_request"
+  }
+]

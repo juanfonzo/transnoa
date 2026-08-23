@@ -1,18 +1,25 @@
 - Goal (incl. success criteria):
-  - Add Tesoreria table in Administracion showing rendiciones-linked viaticos (lote, fecha de pago, monto, colaboradores) and display "Enviado a tesoreria" once a rendicion is saved/confirmed.
+  - Review the console logs produced by the newly added kit commands, distinguish failures from non-blocking warnings, and determine whether a repository adjustment is necessary.
 - Constraints/Assumptions:
   - Follow `AGENTS.md` repo rules and continuity ledger process.
   - Keep changes small; no new dependencies.
   - Use existing Next.js router style, Tailwind, and DB layer in repo.
   - Spanish copy for UI.
+  - Treat `F:\Repositorios\gesuite` as strictly read-only; make no changes there.
+  - Changes are authorized only in `F:\Repositorios\transnoa` and must be adapted to this repository rather than copied blindly.
 - Key decisions:
   - Lote corrections in Pagos y correcciones update the latest version in place (no new version).
   - 0.5 viatico only applies on the last day of a request.
   - Balance adjustments are stored as monetary values at the current viatico rate at time of adjustment.
   - No viatico quantity edits after a request is marked paid.
   - Unused viaticos in rendicion create a DEBIT (saldo deudor) for the collaborator.
+  - Vercel deployment requires only the existing `DATABASE_URL`; the current build script already runs Prisma client generation.
+  - The app is a functional POC: role selection is a demo cookie, not production authentication or authorization.
+  - Port the Gesuite factory as an adapted Direct-First kit: project-local skills, optional custom agents, canonical policies, ownership/surface checks, UTF-8 guardrails, hooks, and CI.
+  - Exclude Gesuite-only MCP, Electron, Copilot, WhatsApp, multi-tenant, and deployment rules; preserve only capabilities relevant to Transnoa's Next.js/Prisma/Postgres stack.
+  - Keep custom delegation optional and capped at one thread; ordinary work remains in the main thread.
 - State:
-  - Tesoreria table wired to rendiciones data with completion-based filtering and status badge.
+  - User-provided lint logs diagnosed; no blocking kit adjustment is required.
 - Done:
   - Read `AGENTS.md` and current `CONTINUITY.md`.
   - Added Admin module tab layout and split content by section.
@@ -48,15 +55,31 @@
   - Added Tesoreria table in Administracion to list rendiciones completas by lote.
   - Added "Enviado a tesoreria" badge when rendicion is complete.
   - Migrated RenditionBulkForm to React.useActionState to clear Next warning.
+  - Drafted `scripts/cleanup-db.sql` to truncate transactional tables.
+  - Executed cleanup script against the shared Neon database.
+  - Inspected the App Router pages, Server Actions, Prisma schema, seed, build configuration, and environment-variable keys.
+  - Verified `DATABASE_URL` is the sole application environment variable and is ignored by Git.
+  - Confirmed there are no Prisma migration files; schema changes must be applied explicitly (current workflow uses `prisma db push`).
+  - Confirmed Vercel detects the existing Next.js build script automatically; reviewed current official Vercel deployment and environment-variable guidance.
+  - Full `npm run verify` passes: kit checks, UTF-8 scan, TypeScript, and ESLint complete with zero errors and six documented pre-existing warnings.
+  - Inventoried Gesuite's tracked Dev IA kit: policies, routing, custom agents, local skills, checks, ownership, surfaces, hooks, CI, and usage guides.
+  - Confirmed Gesuite remained read-only and separated product-specific files from reusable factory mechanisms.
+  - Implemented the adapted Direct-First kit: 14 local skills, 6 optional agents, policies/contracts, technical and usage docs, ownership/surface/UI/encoding checks, Git hook, and GitHub Actions workflows.
+  - Added no dependencies and changed no application runtime behavior.
+  - Validated all 14 skills with `quick_validate.py`; `npm run kit:check`, `npm run kit:test` (9/9), `npm run prisma:validate`, `npm run kit:ui-check -- --all`, `npm run verify`, and `git diff --check` pass.
+  - Installed the repository-local hooks path as `.githooks`; Gesuite `git status --short` remains clean.
+  - Reproduced the pasted lint output: ESLint exits with code 0 and reports the same six known warnings (two unused variables and four `set-state-in-effect` findings).
+  - Confirmed the warnings are intentionally visible and documented in `docs/technical/qa.md`; no product or kit code was changed to suppress them.
 - Now:
-  - All requested changes completed; monitoring for follow-up.
+  - Report the diagnosis and clarify which follow-up is optional.
 - Next:
-  - Add filters/export tweaks if requested.
+  - Optionally refactor the two affected React state flows and remove the scoped ESLint downgrade in a separate implementation task.
 - Open questions (UNCONFIRMED if needed):
+  - None.
 - Working set (files/ids/commands):
-  - `src/app/administracion/page.tsx`
-  - `src/app/actions/renditions.ts`
-  - `src/app/administracion/RenditionForm.tsx`
+  - Source reference: `F:\Repositorios\gesuite` (read-only).
+  - Target: `F:\Repositorios\transnoa`.
+  - Primary entry points: `AGENTS.md`, `GUIA_USO_CODEX_KIT.md`, `GUIA_DESARROLLADOR.md`, `docs/ai/`, `.agents/skills/`, `.codex/agents/`, `scripts/ai-dev-kit/`.
 
 
 

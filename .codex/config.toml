@@ -1,0 +1,8 @@
+[features]
+multi_agent = true
+
+[agents]
+enabled = true
+# La ejecución directa es el default. Sólo DELEGATION_GATE habilita un thread opcional.
+max_concurrent_threads_per_session = 1
+interrupt_message = true
