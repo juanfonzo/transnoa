@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { markPaid, requestCorrection } from "@/app/actions/requests";
+import { ActionFeedback } from "@/components/ActionFeedback";
 import { Modal } from "@/components/Modal";
 import { SubmitButton } from "@/components/SubmitButton";
 import { formatDateInput } from "@/lib/format";
@@ -19,9 +20,15 @@ export function TreasuryActions({
 }: TreasuryActionsProps) {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [correctionOpen, setCorrectionOpen] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const handlePayment = async (formData: FormData) => {
-    await markPaid(formData);
+    setPaymentError(null);
+    const result = await markPaid(formData);
+    if (!result.ok) {
+      setPaymentError(result.message);
+      return;
+    }
     setPaymentOpen(false);
   };
 
@@ -34,7 +41,10 @@ export function TreasuryActions({
     <>
       <button
         type="button"
-        onClick={() => setPaymentOpen(true)}
+        onClick={() => {
+          setPaymentError(null);
+          setPaymentOpen(true);
+        }}
         className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white"
       >
         Registrar pago
@@ -51,18 +61,23 @@ export function TreasuryActions({
 
       <Modal
         open={paymentOpen}
-        onClose={() => setPaymentOpen(false)}
+        onClose={() => {
+          setPaymentOpen(false);
+          setPaymentError(null);
+        }}
         title="Registrar pago"
         description="Confirma la fecha y referencia del deposito."
       >
         <form action={handlePayment} className="space-y-4">
           <input type="hidden" name="requestId" value={requestId} />
+          <ActionFeedback message={paymentError} />
           <div className="grid gap-4 md:grid-cols-2">
             <label className="text-sm font-medium text-slate-700">
               Fecha de pago
               <input
                 type="date"
                 name="paidAt"
+                required
                 defaultValue={formatDateInput(plannedPaymentDate)}
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
               />
@@ -71,6 +86,7 @@ export function TreasuryActions({
               Referencia bancaria
               <input
                 name="paymentReference"
+                required
                 placeholder="DEP-0001"
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
               />

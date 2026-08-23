@@ -3,6 +3,7 @@
 import type { RequestStatus } from "@prisma/client";
 import { useState } from "react";
 import { adminCreateCorrection, adminStandardize } from "@/app/actions/requests";
+import { ActionFeedback } from "@/components/ActionFeedback";
 import { Modal } from "@/components/Modal";
 import { SubmitButton } from "@/components/SubmitButton";
 import { formatDateInput } from "@/lib/format";
@@ -22,6 +23,7 @@ export function AdminActions({
 }: AdminActionsProps) {
   const [standardizeOpen, setStandardizeOpen] = useState(false);
   const [correctionOpen, setCorrectionOpen] = useState(false);
+  const [standardizeError, setStandardizeError] = useState<string | null>(null);
 
   const canStandardize = status === "SUBMITTED_TO_ADMIN" || status === "ADMIN_REVIEW";
   const canCorrect = status === "TREASURY_RETURNED" || status === "ADMIN_CORRECTION";
@@ -31,7 +33,12 @@ export function AdminActions({
   }
 
   const handleStandardize = async (formData: FormData) => {
-    await adminStandardize(formData);
+    setStandardizeError(null);
+    const result = await adminStandardize(formData);
+    if (!result.ok) {
+      setStandardizeError(result.message);
+      return;
+    }
     setStandardizeOpen(false);
   };
 
@@ -45,7 +52,10 @@ export function AdminActions({
       {canStandardize && (
         <button
           type="button"
-          onClick={() => setStandardizeOpen(true)}
+          onClick={() => {
+            setStandardizeError(null);
+            setStandardizeOpen(true);
+          }}
           className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600"
         >
           Colocar lote
@@ -63,17 +73,22 @@ export function AdminActions({
 
       <Modal
         open={standardizeOpen}
-        onClose={() => setStandardizeOpen(false)}
+        onClose={() => {
+          setStandardizeOpen(false);
+          setStandardizeError(null);
+        }}
         title="Colocar lote"
         description="Coloca lote y fecha prevista antes de enviar a firma."
       >
         <form action={handleStandardize} className="space-y-4">
           <input type="hidden" name="requestId" value={requestId} />
+          <ActionFeedback message={standardizeError} />
           <div className="grid gap-4 md:grid-cols-2">
             <label className="text-sm font-medium text-slate-700">
               Lote
               <input
                 name="loteNumber"
+                required
                 defaultValue={loteNumber ?? ""}
                 placeholder="L-2026-0002"
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
@@ -84,6 +99,7 @@ export function AdminActions({
               <input
                 type="date"
                 name="plannedPaymentDate"
+                required
                 defaultValue={formatDateInput(plannedPaymentDate)}
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
               />

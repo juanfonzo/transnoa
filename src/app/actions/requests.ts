@@ -4,8 +4,27 @@ import { Prisma, UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getDemoRole } from "@/lib/demo-auth";
+import {
+  actionError,
+  actionSuccess,
+  type ActionResult,
+} from "@/lib/action-result";
+import {
+  buildDateKeys,
+  STANDARDIZE_ALLOWED_STATUSES,
+  validatePaymentEligibility,
+  validatePaymentInput,
+  validateStatus,
+  validateVersionReadiness,
+  type WorkflowIssue,
+} from "@/lib/workflow-rules";
 
 const DEFAULT_AREA = "Santiago del Estero";
+
+type DayPlan = Record<
+  string,
+  { workerIds: string[]; concepts: string[] }
+>;
 
 function addDays(date: Date, days: number) {
   const next = new Date(date);
@@ -24,6 +43,50 @@ function parseDate(value: FormDataEntryValue | null) {
 function diffDaysInclusive(start: Date, end: Date) {
   const ms = end.getTime() - start.getTime();
   return Math.max(1, Math.floor(ms / (1000 * 60 * 60 * 24)) + 1);
+}
+
+function getRequiredText(formData: FormData, field: string) {
+  const value = formData.get(field);
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function issueToResult(issue: WorkflowIssue): ActionResult {
+  return actionError(issue.code, issue.message, issue.field);
+}
+
+function parseDayPlan(value: FormDataEntryValue | null): DayPlan | null {
+  if (typeof value !== "string" || value.trim() === "") return null;
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return null;
+    }
+
+    return Object.fromEntries(
+      Object.entries(parsed).map(([date, plan]) => {
+        const rawPlan =
+          plan && typeof plan === "object" && !Array.isArray(plan)
+            ? (plan as Record<string, unknown>)
+            : {};
+        const workerIds = Array.isArray(rawPlan.workerIds)
+          ? rawPlan.workerIds.filter(
+              (id): id is string => typeof id === "string" && id.trim() !== ""
+            )
+          : [];
+        const concepts = Array.isArray(rawPlan.concepts)
+          ? rawPlan.concepts
+              .filter((concept): concept is string => typeof concept === "string")
+              .map((concept) => concept.trim())
+              .filter(Boolean)
+          : [];
+
+        return [date, { workerIds, concepts }];
+      })
+    );
+  } catch {
+    return null;
+  }
 }
 
 async function ensureAreaId() {
@@ -142,46 +205,75 @@ export async function createDemoRequest() {
   revalidatePath("/administracion");
 }
 
-export async function createRequestWizard(formData: FormData) {
+export async function createRequestWizard(
+  formData: FormData
+): Promise<ActionResult> {
   const role = (await getDemoRole()) as UserRole;
   const actor = await getActor(role);
   if (!actor) {
-    return;
+    return actionError(
+      "ACTOR_NOT_FOUND",
+      "No se encontró un usuario habilitado para crear la solicitud."
+    );
   }
 
   const areaId = String(formData.get("areaId") || actor.areaId || (await ensureAreaId()));
   const startDate = parseDate(formData.get("startDate"));
   const endDate = parseDate(formData.get("endDate"));
   if (!startDate || !endDate) {
-    return;
+    return actionError(
+      "INVALID_INPUT",
+      "Completa una fecha de inicio y una fecha de fin válidas.",
+      "dates"
+    );
   }
   if (endDate < startDate) {
-    return;
+    return actionError(
+      "INVALID_INPUT",
+      "La fecha de fin no puede ser anterior a la fecha de inicio.",
+      "dates"
+    );
   }
 
-  const conceptLines = String(formData.get("concepts") || "")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  let dayPlan: Record<string, { workerIds?: string[]; concepts?: string[] }> = {};
-  const dayPlanRaw = formData.get("dayPlan");
-  if (typeof dayPlanRaw === "string" && dayPlanRaw.trim() !== "") {
-    try {
-      dayPlan = JSON.parse(dayPlanRaw);
-    } catch {
-      dayPlan = {};
-    }
+  const dayPlan = parseDayPlan(formData.get("dayPlan"));
+  if (!dayPlan) {
+    return actionError(
+      "MISSING_CONCEPTS",
+      "Define al menos un concepto para cada día del período.",
+      "concepts"
+    );
   }
 
-  const workerIds = formData
-    .getAll("workerIds")
-    .filter((id): id is string => typeof id === "string");
+  const workerIds = Array.from(
+    new Set(
+      formData
+        .getAll("workerIds")
+        .filter(
+          (id): id is string => typeof id === "string" && id.trim() !== ""
+        )
+    )
+  );
   if (workerIds.length === 0) {
-    return;
+    return actionError(
+      "MISSING_WORKERS",
+      "Selecciona al menos un trabajador.",
+      "workerIds"
+    );
   }
 
   const calendarDays = diffDaysInclusive(startDate, endDate);
+  const expectedDateKeys = buildDateKeys(startDate, endDate);
+  const missingConceptDates = expectedDateKeys.filter(
+    (date) => !dayPlan[date] || dayPlan[date].concepts.length === 0
+  );
+  if (missingConceptDates.length > 0) {
+    return actionError(
+      "MISSING_CONCEPTS",
+      `Agrega al menos un concepto en cada día. Faltan ${missingConceptDates.length} día(s).`,
+      "concepts"
+    );
+  }
+
   const latestRate = await prisma.viaticRateHistory.findFirst({
     orderBy: { effectiveFrom: "desc" },
   });
@@ -189,38 +281,16 @@ export async function createRequestWizard(formData: FormData) {
   const lastDayHalf = formData.get("lastDayHalf") === "1";
   const lastDayKey = endDate.toISOString().slice(0, 10);
 
-  const requestNumber = await generateRequestNumber();
-  const request = await prisma.viaticRequest.create({
-    data: {
-      requestNumber,
-      areaId,
-      createdByUserId: actor.id,
-      status: "SUBMITTED_TO_ADMIN",
-      currentVersionNumber: 1,
-    },
-  });
-
-  const version = await prisma.viaticRequestVersion.create({
-    data: {
-      requestId: request.id,
-      versionNumber: 1,
-      startDate,
-      endDate,
-      createdByUserId: actor.id,
-      notes: "Solicitud cargada desde wizard",
-      payloadJson: {
-        crew: String(formData.get("crew") || ""),
-        location: String(formData.get("location") || ""),
-        concepts: conceptLines,
-        dayPlan,
-        lastDayHalf,
-      },
-    },
-  });
-
   const selectedWorkers = await prisma.worker.findMany({
     where: { id: { in: workerIds } },
   });
+  if (selectedWorkers.length !== workerIds.length) {
+    return actionError(
+      "MISSING_WORKERS",
+      "Uno o más trabajadores seleccionados ya no están disponibles.",
+      "workerIds"
+    );
+  }
 
   const hasDayPlan = Object.values(dayPlan).some(
     (value) => Array.isArray(value.workerIds) && value.workerIds.length > 0
@@ -259,7 +329,6 @@ export async function createRequestWizard(formData: FormData) {
       const viaticDays = applyHalf ? Math.max(0.5, baseDays - 0.5) : baseDays;
       const grossAmount = dailyAmount.mul(viaticDays);
       return {
-        requestVersionId: version.id,
         workerId: worker.id,
         daysCount: viaticDays,
         dailyAmount,
@@ -270,106 +339,155 @@ export async function createRequestWizard(formData: FormData) {
     })
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
 
-  if (workerData.length > 0) {
-    await prisma.viaticRequestWorker.createMany({ data: workerData });
+  if (workerData.length === 0) {
+    return actionError(
+      "MISSING_WORKERS",
+      "Asigna al menos un día a alguno de los trabajadores seleccionados.",
+      "workerIds"
+    );
   }
 
-  if (hasDayPlan) {
-    const dayConcepts = Object.entries(dayPlan)
-      .map(([dateKey, value]) => {
-        const dayDate = parseDate(dateKey);
-        if (!dayDate) return [];
-        if (dayDate < startDate || dayDate > endDate) return [];
-        const concepts =
-          Array.isArray(value.concepts) && value.concepts.length > 0
-            ? value.concepts
-            : ["Concepto general"];
-        return concepts.map((concept) => ({
-          requestVersionId: version.id,
-          date: dayDate,
-          conceptText: String(concept),
-        }));
-      })
-      .flat();
+  const requestNumber = await generateRequestNumber();
+  await prisma.$transaction(async (tx) => {
+    const request = await tx.viaticRequest.create({
+      data: {
+        requestNumber,
+        areaId,
+        createdByUserId: actor.id,
+        status: "SUBMITTED_TO_ADMIN",
+        currentVersionNumber: 1,
+      },
+    });
 
-    if (dayConcepts.length > 0) {
-      await prisma.viaticRequestDayConcept.createMany({ data: dayConcepts });
-    }
-  } else {
-    const concepts =
-      conceptLines.length > 0 ? conceptLines : ["Concepto general"];
-    const dayConcepts = Array.from({ length: calendarDays }, (_, index) =>
-      concepts.map((concept) => ({
+    const version = await tx.viaticRequestVersion.create({
+      data: {
+        requestId: request.id,
+        versionNumber: 1,
+        startDate,
+        endDate,
+        createdByUserId: actor.id,
+        notes: "Solicitud cargada desde wizard",
+        payloadJson: {
+          crew: String(formData.get("crew") || ""),
+          location: String(formData.get("location") || ""),
+          dayPlan,
+          lastDayHalf,
+        },
+      },
+    });
+
+    await tx.viaticRequestWorker.createMany({
+      data: workerData.map((worker) => ({
+        ...worker,
         requestVersionId: version.id,
-        date: addDays(startDate, index),
-        conceptText: concept,
-      }))
-    ).flat();
-    await prisma.viaticRequestDayConcept.createMany({ data: dayConcepts });
-  }
+      })),
+    });
 
-  await prisma.auditLog.create({
-    data: {
-      entity: "viatic_request",
-      entityId: request.id,
-      action: "create_request_wizard",
-      afterJson: { status: request.status },
-      userId: actor.id,
-    },
+    await tx.viaticRequestDayConcept.createMany({
+      data: expectedDateKeys.flatMap((date) =>
+        dayPlan[date].concepts.map((concept) => ({
+          requestVersionId: version.id,
+          date: new Date(`${date}T00:00:00`),
+          conceptText: concept,
+        }))
+      ),
+    });
+
+    await tx.auditLog.create({
+      data: {
+        entity: "viatic_request",
+        entityId: request.id,
+        action: "create_request_wizard",
+        afterJson: { status: request.status },
+        userId: actor.id,
+      },
+    });
   });
 
   revalidatePath("/");
   revalidatePath("/solicitudes");
   revalidatePath("/administracion");
+  return actionSuccess("La solicitud fue enviada a administración.");
 }
 
-export async function adminStandardize(formData: FormData) {
+export async function adminStandardize(
+  formData: FormData
+): Promise<ActionResult> {
   const requestId = formData.get("requestId");
   if (typeof requestId !== "string") {
-    return;
+    return actionError("INVALID_INPUT", "No se pudo identificar la solicitud.");
   }
 
   const actor = await getActor("ADMIN");
   if (!actor) {
-    return;
+    return actionError(
+      "ACTOR_NOT_FOUND",
+      "No se encontró un usuario de administración habilitado."
+    );
   }
 
   const request = await prisma.viaticRequest.findUnique({
     where: { id: requestId },
-    include: { versions: { orderBy: { versionNumber: "desc" }, take: 1 } },
+    include: {
+      versions: {
+        orderBy: { versionNumber: "desc" },
+        take: 1,
+        include: { workers: true, dayConcepts: true },
+      },
+    },
   });
   const version = request?.versions[0];
   if (!request || !version) {
-    return;
+    return actionError("NOT_FOUND", "La solicitud ya no está disponible.");
   }
 
+  const statusIssue = validateStatus(
+    request.status,
+    STANDARDIZE_ALLOWED_STATUSES,
+    "La solicitud ya no está pendiente de revisión administrativa."
+  );
+  if (statusIssue) return issueToResult(statusIssue);
+
+  const loteNumber = getRequiredText(formData, "loteNumber");
   const plannedPaymentDate = parseDate(formData.get("plannedPaymentDate"));
-  await prisma.viaticRequestVersion.update({
-    where: { id: version.id },
-    data: {
-      loteNumber: String(formData.get("loteNumber") || version.loteNumber || ""),
-      plannedPaymentDate: plannedPaymentDate ?? version.plannedPaymentDate,
-      notes: String(formData.get("notes") || version.notes || ""),
-    },
+  const readinessIssue = validateVersionReadiness({
+    loteNumber,
+    plannedPaymentDate,
+    workerCount: version.workers.length,
+    startDate: version.startDate,
+    endDate: version.endDate,
+    conceptDates: version.dayConcepts.map((concept) => concept.date),
   });
+  if (readinessIssue) return issueToResult(readinessIssue);
 
-  await prisma.viaticRequest.update({
-    where: { id: request.id },
-    data: { status: "PENDING_SIGNATURE" },
-  });
-
-  await prisma.auditLog.create({
-    data: {
-      entity: "viatic_request",
-      entityId: request.id,
-      action: "admin_standardize",
-      afterJson: { status: "PENDING_SIGNATURE" },
-      userId: actor.id,
-    },
-  });
+  const notes = getRequiredText(formData, "notes");
+  await prisma.$transaction([
+    prisma.viaticRequestVersion.update({
+      where: { id: version.id },
+      data: {
+        loteNumber,
+        plannedPaymentDate,
+        notes: notes || version.notes,
+      },
+    }),
+    prisma.viaticRequest.update({
+      where: { id: request.id },
+      data: { status: "PENDING_SIGNATURE" },
+    }),
+    prisma.auditLog.create({
+      data: {
+        entity: "viatic_request",
+        entityId: request.id,
+        action: "admin_standardize",
+        afterJson: { status: "PENDING_SIGNATURE", loteNumber },
+        userId: actor.id,
+      },
+    }),
+  ]);
 
   revalidatePath("/administracion");
   revalidatePath("/solicitudes");
+  return actionSuccess("La solicitud fue enviada a firma.");
 }
 
 export async function adminCreateCorrection(formData: FormData) {
@@ -466,200 +584,219 @@ export async function adminCreateCorrection(formData: FormData) {
   revalidatePath("/solicitudes");
 }
 
-export async function signRequest(formData: FormData) {
+export async function signRequest(formData: FormData): Promise<ActionResult> {
   const requestId = formData.get("requestId");
   if (typeof requestId !== "string") {
-    return;
+    return actionError("INVALID_INPUT", "No se pudo identificar la solicitud.");
   }
 
   const actor = await getActor("JEFE_AREA");
   if (!actor) {
-    return;
-  }
-
-  const request = await prisma.viaticRequest.findUnique({
-    where: { id: requestId },
-    include: { versions: { orderBy: { versionNumber: "desc" }, take: 1 } },
-  });
-  const version = request?.versions[0];
-  if (!request || !version) {
-    return;
-  }
-
-  await prisma.signature.upsert({
-    where: { requestVersionId: version.id },
-    update: { signedAt: new Date() },
-    create: {
-      requestVersionId: version.id,
-      signedByUserId: actor.id,
-      signatureMethod: "PIN",
-      docHash: "demo-hash",
-    },
-  });
-
-  await prisma.viaticRequest.update({
-    where: { id: request.id },
-    data: { status: "READY_FOR_PAYMENT" },
-  });
-
-  await prisma.auditLog.create({
-    data: {
-      entity: "viatic_request",
-      entityId: request.id,
-      action: "sign_request",
-      afterJson: { status: "READY_FOR_PAYMENT" },
-      userId: actor.id,
-    },
-  });
-
-  revalidatePath("/solicitudes");
-  revalidatePath("/tesoreria");
-}
-
-export async function markPaid(formData: FormData) {
-  const requestId = formData.get("requestId");
-  const paidAtValue = parseDate(formData.get("paidAt"));
-  const paymentReference = formData.get("paymentReference");
-  const notes = formData.get("notes");
-  if (typeof requestId !== "string") {
-    return;
-  }
-
-  const actor = await getActor("TESORERIA");
-  if (!actor) {
-    return;
+    return actionError(
+      "ACTOR_NOT_FOUND",
+      "No se encontró un jefe de área habilitado para firmar."
+    );
   }
 
   const request = await prisma.viaticRequest.findUnique({
     where: { id: requestId },
     include: {
-      versions: { orderBy: { versionNumber: "desc" }, take: 1 },
+      versions: {
+        orderBy: { versionNumber: "desc" },
+        take: 1,
+        include: { workers: true, dayConcepts: true },
+      },
+    },
+  });
+  const version = request?.versions[0];
+  if (!request || !version) {
+    return actionError("NOT_FOUND", "La solicitud ya no está disponible.");
+  }
+
+  const statusIssue = validateStatus(
+    request.status,
+    ["PENDING_SIGNATURE"],
+    "La solicitud ya no está pendiente de firma."
+  );
+  if (statusIssue) return issueToResult(statusIssue);
+
+  const readinessIssue = validateVersionReadiness({
+    loteNumber: version.loteNumber,
+    plannedPaymentDate: version.plannedPaymentDate,
+    workerCount: version.workers.length,
+    startDate: version.startDate,
+    endDate: version.endDate,
+    conceptDates: version.dayConcepts.map((concept) => concept.date),
+  });
+  if (readinessIssue) return issueToResult(readinessIssue);
+
+  await prisma.$transaction([
+    prisma.signature.upsert({
+      where: { requestVersionId: version.id },
+      update: { signedAt: new Date(), signedByUserId: actor.id },
+      create: {
+        requestVersionId: version.id,
+        signedByUserId: actor.id,
+        signatureMethod: "PIN",
+        docHash: "demo-hash",
+      },
+    }),
+    prisma.viaticRequest.update({
+      where: { id: request.id },
+      data: { status: "READY_FOR_PAYMENT" },
+    }),
+    prisma.auditLog.create({
+      data: {
+        entity: "viatic_request",
+        entityId: request.id,
+        action: "sign_request",
+        afterJson: { status: "READY_FOR_PAYMENT" },
+        userId: actor.id,
+      },
+    }),
+  ]);
+
+  revalidatePath("/solicitudes");
+  revalidatePath("/tesoreria");
+  revalidatePath("/administracion");
+  return actionSuccess("La solicitud fue firmada y quedó lista para pago.");
+}
+
+async function savePayment(
+  formData: FormData,
+  actorRole: "ADMIN" | "TESORERIA"
+): Promise<ActionResult> {
+  const requestId = formData.get("requestId");
+  const paidAtValue = parseDate(formData.get("paidAt"));
+  const paymentReference = getRequiredText(formData, "paymentReference");
+  const notes = getRequiredText(formData, "notes");
+  if (typeof requestId !== "string") {
+    return actionError("INVALID_INPUT", "No se pudo identificar la solicitud.");
+  }
+  const paymentInputIssue = validatePaymentInput({
+    paidAt: paidAtValue,
+    paymentReference,
+  });
+  if (paymentInputIssue) return issueToResult(paymentInputIssue);
+
+  const actor = await getActor(actorRole);
+  if (!actor) {
+    return actionError(
+      "ACTOR_NOT_FOUND",
+      "No se encontró un usuario habilitado para registrar el pago."
+    );
+  }
+
+  const request = await prisma.viaticRequest.findUnique({
+    where: { id: requestId },
+    include: {
+      versions: {
+        orderBy: { versionNumber: "desc" },
+        take: 1,
+        include: {
+          workers: true,
+          dayConcepts: true,
+          signature: true,
+          payment: true,
+        },
+      },
     },
   });
 
   const version = request?.versions[0];
   if (!request || !version) {
-    return;
+    return actionError("NOT_FOUND", "La solicitud ya no está disponible.");
   }
 
-  await prisma.viaticRequest.update({
-    where: { id: requestId },
-    data: { status: "PAID" },
+  const eligibilityIssue = validatePaymentEligibility({
+    status: request.status,
+    hasPayment: Boolean(version.payment),
+    hasSignature: Boolean(version.signature),
   });
+  if (eligibilityIssue) return issueToResult(eligibilityIssue);
 
-  await prisma.treasuryPayment.upsert({
-    where: { requestVersionId: version.id },
-    update: {
-      paidAt: paidAtValue ?? new Date(),
-      paymentReference:
-        typeof paymentReference === "string" && paymentReference.trim() !== ""
-          ? paymentReference
-          : "DEP-DEMO",
-      notes: typeof notes === "string" ? notes : "Pago registrado desde demo",
-    },
-    create: {
-      requestVersionId: version.id,
-      paidAt: paidAtValue ?? new Date(),
-      paymentReference:
-        typeof paymentReference === "string" && paymentReference.trim() !== ""
-          ? paymentReference
-          : "DEP-DEMO",
-      notes: typeof notes === "string" ? notes : "Pago registrado desde demo",
-      createdByUserId: actor.id,
-    },
+  const readinessIssue = validateVersionReadiness({
+    loteNumber: version.loteNumber,
+    plannedPaymentDate: version.plannedPaymentDate,
+    workerCount: version.workers.length,
+    startDate: version.startDate,
+    endDate: version.endDate,
+    conceptDates: version.dayConcepts.map((concept) => concept.date),
   });
+  if (readinessIssue) return issueToResult(readinessIssue);
 
-  await prisma.auditLog.create({
-    data: {
-      entity: "viatic_request",
-      entityId: request.id,
-      action: "mark_paid",
-      afterJson: { status: "PAID" },
-      userId: actor.id,
-    },
-  });
+  const isUpdate = Boolean(version.payment);
+  const auditAction = isUpdate
+    ? actorRole === "ADMIN"
+      ? "admin_update_payment"
+      : "update_payment"
+    : actorRole === "ADMIN"
+      ? "admin_mark_paid"
+      : "mark_paid";
+
+  await prisma.$transaction([
+    prisma.viaticRequest.update({
+      where: { id: requestId },
+      data: { status: "PAID" },
+    }),
+    prisma.treasuryPayment.upsert({
+      where: { requestVersionId: version.id },
+      update: {
+        paidAt: paidAtValue!,
+        paymentReference,
+        ...(notes ? { notes } : {}),
+      },
+      create: {
+        requestVersionId: version.id,
+        paidAt: paidAtValue!,
+        paymentReference,
+        notes: notes || `Pago registrado desde ${actorRole.toLowerCase()}`,
+        createdByUserId: actor.id,
+      },
+    }),
+    prisma.auditLog.create({
+      data: {
+        entity: "viatic_request",
+        entityId: request.id,
+        action: auditAction,
+        afterJson: {
+          status: "PAID",
+          operation: isUpdate ? "update" : "create",
+        },
+        userId: actor.id,
+      },
+    }),
+  ]);
 
   revalidatePath("/");
   revalidatePath("/tesoreria");
   revalidatePath("/solicitudes");
-}
-
-export async function adminMarkPaid(formData: FormData) {
-  const requestId = formData.get("requestId");
-  const paidAtValue = parseDate(formData.get("paidAt"));
-  const paymentReference = formData.get("paymentReference");
-  const notes = formData.get("notes");
-  if (typeof requestId !== "string") {
-    return;
-  }
-
-  const actor = await getActor("ADMIN");
-  if (!actor) {
-    return;
-  }
-
-  const request = await prisma.viaticRequest.findUnique({
-    where: { id: requestId },
-    include: {
-      versions: { orderBy: { versionNumber: "desc" }, take: 1 },
-    },
-  });
-
-  const version = request?.versions[0];
-  if (!request || !version) {
-    return;
-  }
-
-  await prisma.viaticRequest.update({
-    where: { id: requestId },
-    data: { status: "PAID" },
-  });
-
-  await prisma.treasuryPayment.upsert({
-    where: { requestVersionId: version.id },
-    update: {
-      paidAt: paidAtValue ?? new Date(),
-      paymentReference:
-        typeof paymentReference === "string" && paymentReference.trim() !== ""
-          ? paymentReference
-          : "DEP-DEMO",
-      notes: typeof notes === "string" ? notes : "Pago registrado desde admin",
-    },
-    create: {
-      requestVersionId: version.id,
-      paidAt: paidAtValue ?? new Date(),
-      paymentReference:
-        typeof paymentReference === "string" && paymentReference.trim() !== ""
-          ? paymentReference
-          : "DEP-DEMO",
-      notes: typeof notes === "string" ? notes : "Pago registrado desde admin",
-      createdByUserId: actor.id,
-    },
-  });
-
-  await prisma.auditLog.create({
-    data: {
-      entity: "viatic_request",
-      entityId: request.id,
-      action: "admin_mark_paid",
-      afterJson: { status: "PAID" },
-      userId: actor.id,
-    },
-  });
-
   revalidatePath("/administracion");
-  revalidatePath("/solicitudes");
+  return actionSuccess(isUpdate ? "El pago fue actualizado." : "El pago fue registrado.");
 }
 
-export async function adminUpdateLote(formData: FormData) {
+export async function markPaid(formData: FormData): Promise<ActionResult> {
+  return savePayment(formData, "TESORERIA");
+}
+
+export async function adminMarkPaid(formData: FormData): Promise<ActionResult> {
+  return savePayment(formData, "ADMIN");
+}
+
+export async function adminUpdateLote(
+  formData: FormData
+): Promise<ActionResult> {
   const requestId = formData.get("requestId");
   if (typeof requestId !== "string") {
-    return;
+    return actionError("INVALID_INPUT", "No se pudo identificar la solicitud.");
   }
 
   const actor = await getActor("ADMIN");
   if (!actor) {
-    return;
+    return actionError(
+      "ACTOR_NOT_FOUND",
+      "No se encontró un usuario de administración habilitado."
+    );
   }
 
   const request = await prisma.viaticRequest.findUnique({
@@ -674,33 +811,46 @@ export async function adminUpdateLote(formData: FormData) {
   });
   const version = request?.versions[0];
   if (!request || !version) {
-    return;
+    return actionError("NOT_FOUND", "La solicitud ya no está disponible.");
   }
 
   if (request.status === "PAID" || version.payment) {
-    return;
+    return actionError(
+      "INVALID_STATUS",
+      "El lote de una solicitud pagada no se puede modificar."
+    );
   }
 
   const plannedPaymentDate = parseDate(formData.get("plannedPaymentDate"));
-  const loteRaw =
-    typeof formData.get("loteNumber") === "string"
-      ? String(formData.get("loteNumber")).trim()
-      : "";
+  const loteRaw = getRequiredText(formData, "loteNumber");
+  if (!loteRaw) {
+    return actionError(
+      "MISSING_LOTE",
+      "Ingresa el lote corregido.",
+      "loteNumber"
+    );
+  }
+  if (!plannedPaymentDate) {
+    return actionError(
+      "MISSING_PLANNED_PAYMENT_DATE",
+      "Indica la fecha prevista de pago corregida.",
+      "plannedPaymentDate"
+    );
+  }
   const notesRaw = formData.get("notes");
 
-  await prisma.viaticRequestVersion.update({
-    where: { id: version.id },
-    data: {
-      loteNumber: loteRaw === "" ? null : loteRaw,
-      plannedPaymentDate: plannedPaymentDate ?? version.plannedPaymentDate,
-      notes:
-        typeof notesRaw === "string" && notesRaw.trim() !== ""
-          ? notesRaw
-          : version.notes,
-    },
-  });
-
   await prisma.$transaction([
+    prisma.viaticRequestVersion.update({
+      where: { id: version.id },
+      data: {
+        loteNumber: loteRaw,
+        plannedPaymentDate,
+        notes:
+          typeof notesRaw === "string" && notesRaw.trim() !== ""
+            ? notesRaw
+            : version.notes,
+      },
+    }),
     prisma.signature.deleteMany({
       where: { requestVersionId: version.id },
     }),
@@ -714,8 +864,8 @@ export async function adminUpdateLote(formData: FormData) {
         entityId: version.id,
         action: "admin_update_lote",
         afterJson: {
-          loteNumber: loteRaw === "" ? null : loteRaw,
-          plannedPaymentDate: plannedPaymentDate?.toISOString() ?? null,
+          loteNumber: loteRaw,
+          plannedPaymentDate: plannedPaymentDate.toISOString(),
           status: "PENDING_SIGNATURE",
         },
         userId: actor.id,
@@ -725,6 +875,7 @@ export async function adminUpdateLote(formData: FormData) {
 
   revalidatePath("/administracion");
   revalidatePath("/solicitudes");
+  return actionSuccess("El lote fue corregido y requiere una nueva firma.");
 }
 
 export async function requestCorrection(formData: FormData) {

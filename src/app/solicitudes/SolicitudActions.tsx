@@ -3,6 +3,7 @@
 import type { RequestStatus } from "@prisma/client";
 import { useState } from "react";
 import { signRequest } from "@/app/actions/requests";
+import { ActionFeedback } from "@/components/ActionFeedback";
 import { Modal } from "@/components/Modal";
 import { SubmitButton } from "@/components/SubmitButton";
 
@@ -13,13 +14,19 @@ type SolicitudActionsProps = {
 
 export function SolicitudActions({ requestId, status }: SolicitudActionsProps) {
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (status !== "PENDING_SIGNATURE") {
     return <span className="text-xs text-slate-400">-</span>;
   }
 
   const handleSign = async (formData: FormData) => {
-    await signRequest(formData);
+    setError(null);
+    const result = await signRequest(formData);
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
     setOpen(false);
   };
 
@@ -27,7 +34,10 @@ export function SolicitudActions({ requestId, status }: SolicitudActionsProps) {
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setError(null);
+          setOpen(true);
+        }}
         className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600"
       >
         Firmar
@@ -35,12 +45,16 @@ export function SolicitudActions({ requestId, status }: SolicitudActionsProps) {
 
       <Modal
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={() => {
+          setOpen(false);
+          setError(null);
+        }}
         title="Firma interna"
         description="Confirma que la informacion esta correcta antes de firmar."
       >
         <form action={handleSign} className="space-y-4">
           <input type="hidden" name="requestId" value={requestId} />
+          <ActionFeedback message={error} />
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
             Al firmar, la solicitud queda bloqueada para cambios y pasa a
             tesoreria.

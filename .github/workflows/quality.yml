@@ -6,6 +6,7 @@ on:
       - "src/**"
       - "prisma/**"
       - "public/**"
+      - "scripts/**"
       - "*.json"
       - "*.ts"
       - "*.mjs"
@@ -15,6 +16,7 @@ on:
       - "src/**"
       - "prisma/**"
       - "public/**"
+      - "scripts/**"
       - "*.json"
       - "*.ts"
       - "*.mjs"
@@ -32,3 +34,4 @@ jobs:
       - run: npm run check:encoding
       - run: npm run typecheck
       - run: npm run lint
+      - run: npm run test:workflow

@@ -3,6 +3,7 @@
 import type { RequestStatus } from "@prisma/client";
 import { useState } from "react";
 import { adminMarkPaid, adminUpdateLote } from "@/app/actions/requests";
+import { ActionFeedback } from "@/components/ActionFeedback";
 import { Modal } from "@/components/Modal";
 import { SubmitButton } from "@/components/SubmitButton";
 import { formatDateInput } from "@/lib/format";
@@ -26,8 +27,11 @@ export function AdminPaymentActions({
 }: AdminPaymentActionsProps) {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [loteOpen, setLoteOpen] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [loteError, setLoteError] = useState<string | null>(null);
 
   const paymentLabel = paidAt ? "Editar pago" : "Registrar pago";
+  const canEditPayment = status === "READY_FOR_PAYMENT" || status === "PAID";
   const canEditLote = !paidAt && status !== "PAID";
   const paymentHint =
     status === "PAID"
@@ -35,13 +39,23 @@ export function AdminPaymentActions({
       : "Confirma la fecha y referencia del deposito.";
 
   const handlePayment = async (formData: FormData) => {
-    await adminMarkPaid(formData);
+    setPaymentError(null);
+    const result = await adminMarkPaid(formData);
+    if (!result.ok) {
+      setPaymentError(result.message);
+      return;
+    }
     setPaymentOpen(false);
   };
 
   const handleLote = async (formData: FormData) => {
     if (!canEditLote) return;
-    await adminUpdateLote(formData);
+    setLoteError(null);
+    const result = await adminUpdateLote(formData);
+    if (!result.ok) {
+      setLoteError(result.message);
+      return;
+    }
     setLoteOpen(false);
   };
 
@@ -50,14 +64,26 @@ export function AdminPaymentActions({
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={() => setPaymentOpen(true)}
-          className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white"
+          onClick={() => {
+            setPaymentError(null);
+            setPaymentOpen(true);
+          }}
+          disabled={!canEditPayment}
+          className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+          title={
+            canEditPayment
+              ? paymentLabel
+              : "La solicitud debe estar lista para pago"
+          }
         >
           {paymentLabel}
         </button>
         <button
           type="button"
-          onClick={() => setLoteOpen(true)}
+          onClick={() => {
+            setLoteError(null);
+            setLoteOpen(true);
+          }}
           disabled={!canEditLote}
           className={`rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide ${
             canEditLote
@@ -76,18 +102,23 @@ export function AdminPaymentActions({
 
       <Modal
         open={paymentOpen}
-        onClose={() => setPaymentOpen(false)}
+        onClose={() => {
+          setPaymentOpen(false);
+          setPaymentError(null);
+        }}
         title={paymentLabel}
         description={paymentHint}
       >
         <form action={handlePayment} className="space-y-4">
           <input type="hidden" name="requestId" value={requestId} />
+          <ActionFeedback message={paymentError} />
           <div className="grid gap-4 md:grid-cols-2">
             <label className="text-sm font-medium text-slate-700">
               Fecha de pago
               <input
                 type="date"
                 name="paidAt"
+                required
                 defaultValue={formatDateInput(paidAt ?? plannedPaymentDate)}
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
               />
@@ -96,6 +127,7 @@ export function AdminPaymentActions({
               Referencia bancaria
               <input
                 name="paymentReference"
+                required
                 defaultValue={paymentReference ?? ""}
                 placeholder="DEP-0001"
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
@@ -120,17 +152,22 @@ export function AdminPaymentActions({
 
       <Modal
         open={loteOpen}
-        onClose={() => setLoteOpen(false)}
+        onClose={() => {
+          setLoteOpen(false);
+          setLoteError(null);
+        }}
         title="Corregir lote y fecha"
         description="Actualiza lote y fecha prevista desde administracion."
       >
         <form action={handleLote} className="space-y-4">
           <input type="hidden" name="requestId" value={requestId} />
+          <ActionFeedback message={loteError} />
           <div className="grid gap-4 md:grid-cols-2">
             <label className="text-sm font-medium text-slate-700">
               Lote
               <input
                 name="loteNumber"
+                required
                 defaultValue={loteNumber ?? ""}
                 placeholder="L-2026-0002"
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
@@ -141,6 +178,7 @@ export function AdminPaymentActions({
               <input
                 type="date"
                 name="plannedPaymentDate"
+                required
                 defaultValue={formatDateInput(plannedPaymentDate)}
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
               />

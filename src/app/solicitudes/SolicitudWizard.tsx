@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createRequestWizard } from "@/app/actions/requests";
 import { WorkerCreateModal } from "@/app/solicitudes/WorkerCreateModal";
+import { ActionFeedback } from "@/components/ActionFeedback";
 import { Modal } from "@/components/Modal";
 import { SubmitButton } from "@/components/SubmitButton";
 import { formatCurrency } from "@/lib/format";
@@ -59,12 +60,12 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [areaId, setAreaId] = useState(areas[0]?.id ?? "");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [crew, setCrew] = useState("");
   const [location, setLocation] = useState("");
-  const [concepts, setConcepts] = useState("");
   const [selectedWorkers, setSelectedWorkers] = useState<Record<string, boolean>>({});
   const [dayAssignments, setDayAssignments] = useState<Record<string, DayAssignment>>({});
   const [lastDayHalf, setLastDayHalf] = useState(false);
@@ -161,23 +162,36 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
     return sum + days * dailyAmount;
   }, 0);
 
+  const hasConceptsForEveryDay =
+    dates.length > 0 &&
+    dates.every((date) => dayAssignments[date]?.conceptsText.trim());
+
   const canContinue = [
-    areaId && startDate && endDate,
+    Boolean(areaId && startDate && endDate && endDate >= startDate),
     selectedWorkerList.length > 0,
-    dates.length > 0,
+    hasConceptsForEveryDay,
     true,
   ];
 
   const handleOpen = () => {
     setOpen(true);
     setStep(0);
+    setError(null);
   };
 
   const handleSubmit = async (formData: FormData) => {
-    await createRequestWizard(formData);
+    setError(null);
+    const result = await createRequestWizard(formData);
+    if (!result.ok) {
+      setError(result.message);
+      if (result.field === "concepts") setStep(2);
+      if (result.field === "dates") setStep(0);
+      if (result.field === "workerIds") setStep(1);
+      return;
+    }
     setOpen(false);
     setStep(0);
-    setNotice("Su solicitud fue enviada a administracion.");
+    setNotice(result.message);
   };
 
   useEffect(() => {
@@ -213,7 +227,10 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
 
       <Modal
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={() => {
+          setOpen(false);
+          setError(null);
+        }}
         title="Nueva solicitud"
         description="Completa los datos principales para enviar a administracion."
       >
@@ -236,12 +253,13 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
           <input type="hidden" name="endDate" value={endDate} />
           <input type="hidden" name="crew" value={crew} />
           <input type="hidden" name="location" value={location} />
-          <input type="hidden" name="concepts" value={concepts} />
           <input type="hidden" name="dayPlan" value={JSON.stringify(dayPlanPayload)} />
           <input type="hidden" name="lastDayHalf" value={lastDayHalf ? "1" : "0"} />
           {selectedWorkerList.map((worker) => (
             <input key={worker.id} type="hidden" name="workerIds" value={worker.id} />
           ))}
+
+          <ActionFeedback message={error} />
 
           {step === 0 && (
             <div className="grid gap-4 md:grid-cols-2">
@@ -350,7 +368,8 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
           {step === 2 && (
             <div className="space-y-3">
               <p className="text-sm text-slate-600">
-                Define que trabajadores participan cada dia y los conceptos asociados.
+                Define qué trabajadores participan cada día y agrega al menos un
+                concepto por jornada.
               </p>
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -463,18 +482,24 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
                             Conceptos del dia
                             <textarea
                               value={assignment?.conceptsText ?? ""}
-                              onChange={(event) =>
+                              aria-invalid={!assignment?.conceptsText.trim()}
+                              onChange={(event) => {
+                                setError(null);
                                 setDayAssignments((prev) => ({
                                   ...prev,
                                   [date]: {
                                     workerIds: assignment?.workerIds ?? [],
                                     conceptsText: event.target.value,
                                   },
-                                }))
-                              }
+                                }));
+                              }}
                               rows={3}
                               placeholder="Ej: Montaje\nEj: Mantenimiento"
-                              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                              className={`mt-1 w-full rounded-xl border px-3 py-2 text-xs ${
+                                assignment?.conceptsText.trim()
+                                  ? "border-slate-200"
+                                  : "border-rose-200 bg-rose-50/40"
+                              }`}
                             />
                           </label>
                         </div>
@@ -482,6 +507,11 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
                     );
                   })}
                 </div>
+              )}
+              {!hasConceptsForEveryDay && dates.length > 0 && (
+                <p className="text-xs font-medium text-rose-600">
+                  Completa los conceptos de cada día para continuar.
+                </p>
               )}
             </div>
           )}
