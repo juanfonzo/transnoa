@@ -1,6 +1,6 @@
 import type { RequestStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatDateOnly } from "@/lib/format";
 import { getRequestStatusLabel, getStatusTone, getToneClasses } from "@/lib/status";
 import { SolicitudWizard } from "@/app/solicitudes/SolicitudWizard";
 import { SolicitudActions } from "@/app/solicitudes/SolicitudActions";
@@ -120,7 +120,8 @@ export default async function SolicitudesPage() {
                     <td className="px-4 py-3">v{version?.versionNumber ?? "-"}</td>
                     <td className="px-4 py-3">{version?.loteNumber ?? "-"}</td>
                     <td className="px-4 py-3">
-                      {formatDate(version?.startDate)} - {formatDate(version?.endDate)}
+                      {formatDateOnly(version?.startDate)} -{" "}
+                      {formatDateOnly(version?.endDate)}
                     </td>
                     <td className="px-4 py-3 font-semibold text-slate-900">
                       {formatCurrency(total)}

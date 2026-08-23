@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { toExcelHtml } from "@/lib/excel";
+import { dateOnlyKey } from "@/lib/date-only";
 
 export async function GET() {
   const rows = await prisma.viaticRequestWorker.findMany({
@@ -44,7 +45,7 @@ export async function GET() {
       version.versionNumber,
       version.request.area.name,
       version.loteNumber ?? "",
-      payment?.paidAt ?? "",
+      payment?.paidAt ? dateOnlyKey(payment.paidAt) : "",
       row.worker.name,
       row.worker.legajo,
       daysCount,

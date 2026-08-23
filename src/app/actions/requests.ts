@@ -5,6 +5,12 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getDemoRole } from "@/lib/demo-auth";
 import {
+  addDateOnlyDays,
+  dateOnlyKey,
+  diffDateOnlyDaysInclusive,
+  parseDateOnly,
+} from "@/lib/date-only";
+import {
   actionError,
   actionSuccess,
   type ActionResult,
@@ -27,22 +33,7 @@ type DayPlan = Record<
 >;
 
 function addDays(date: Date, days: number) {
-  const next = new Date(date);
-  next.setDate(next.getDate() + days);
-  return next;
-}
-
-function parseDate(value: FormDataEntryValue | null) {
-  if (typeof value !== "string" || value.trim() === "") {
-    return null;
-  }
-  const parsed = new Date(`${value}T00:00:00`);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function diffDaysInclusive(start: Date, end: Date) {
-  const ms = end.getTime() - start.getTime();
-  return Math.max(1, Math.floor(ms / (1000 * 60 * 60 * 24)) + 1);
+  return addDateOnlyDays(date, days);
 }
 
 function getRequiredText(formData: FormData, field: string) {
@@ -137,8 +128,7 @@ export async function createDemoRequest() {
 
   const dailyAmount = latestRate?.amount ?? new Prisma.Decimal(25000);
   const calendarDays = 3;
-  const startDate = new Date();
-  startDate.setHours(0, 0, 0, 0);
+  const startDate = addDays(new Date(), 0);
   const endDate = addDays(startDate, calendarDays - 1);
 
   const request = await prisma.viaticRequest.create({
@@ -218,8 +208,8 @@ export async function createRequestWizard(
   }
 
   const areaId = String(formData.get("areaId") || actor.areaId || (await ensureAreaId()));
-  const startDate = parseDate(formData.get("startDate"));
-  const endDate = parseDate(formData.get("endDate"));
+  const startDate = parseDateOnly(formData.get("startDate"));
+  const endDate = parseDateOnly(formData.get("endDate"));
   if (!startDate || !endDate) {
     return actionError(
       "INVALID_INPUT",
@@ -261,7 +251,7 @@ export async function createRequestWizard(
     );
   }
 
-  const calendarDays = diffDaysInclusive(startDate, endDate);
+  const calendarDays = diffDateOnlyDaysInclusive(startDate, endDate);
   const expectedDateKeys = buildDateKeys(startDate, endDate);
   const missingConceptDates = expectedDateKeys.filter(
     (date) => !dayPlan[date] || dayPlan[date].concepts.length === 0
@@ -279,7 +269,7 @@ export async function createRequestWizard(
   });
   const dailyAmount = latestRate?.amount ?? new Prisma.Decimal(25000);
   const lastDayHalf = formData.get("lastDayHalf") === "1";
-  const lastDayKey = endDate.toISOString().slice(0, 10);
+  const lastDayKey = dateOnlyKey(endDate);
 
   const selectedWorkers = await prisma.worker.findMany({
     where: { id: { in: workerIds } },
@@ -300,7 +290,7 @@ export async function createRequestWizard(
 
   if (hasDayPlan) {
     Object.entries(dayPlan).forEach(([dateKey, value]) => {
-      const dayDate = parseDate(dateKey);
+      const dayDate = parseDateOnly(dateKey);
       if (!dayDate) return;
       if (dayDate < startDate || dayDate > endDate) return;
       const workerList = Array.isArray(value.workerIds)
@@ -387,7 +377,7 @@ export async function createRequestWizard(
       data: expectedDateKeys.flatMap((date) =>
         dayPlan[date].concepts.map((concept) => ({
           requestVersionId: version.id,
-          date: new Date(`${date}T00:00:00`),
+          date: parseDateOnly(date)!,
           conceptText: concept,
         }))
       ),
@@ -449,7 +439,7 @@ export async function adminStandardize(
   if (statusIssue) return issueToResult(statusIssue);
 
   const loteNumber = getRequiredText(formData, "loteNumber");
-  const plannedPaymentDate = parseDate(formData.get("plannedPaymentDate"));
+  const plannedPaymentDate = parseDateOnly(formData.get("plannedPaymentDate"));
   const readinessIssue = validateVersionReadiness({
     loteNumber,
     plannedPaymentDate,
@@ -516,7 +506,7 @@ export async function adminCreateCorrection(formData: FormData) {
     return;
   }
 
-  const plannedPaymentDate = parseDate(formData.get("plannedPaymentDate"));
+  const plannedPaymentDate = parseDateOnly(formData.get("plannedPaymentDate"));
   const newVersionNumber = version.versionNumber + 1;
 
   const newVersion = await prisma.viaticRequestVersion.create({
@@ -667,7 +657,7 @@ async function savePayment(
   actorRole: "ADMIN" | "TESORERIA"
 ): Promise<ActionResult> {
   const requestId = formData.get("requestId");
-  const paidAtValue = parseDate(formData.get("paidAt"));
+  const paidAtValue = parseDateOnly(formData.get("paidAt"));
   const paymentReference = getRequiredText(formData, "paymentReference");
   const notes = getRequiredText(formData, "notes");
   if (typeof requestId !== "string") {
@@ -821,7 +811,7 @@ export async function adminUpdateLote(
     );
   }
 
-  const plannedPaymentDate = parseDate(formData.get("plannedPaymentDate"));
+  const plannedPaymentDate = parseDateOnly(formData.get("plannedPaymentDate"));
   const loteRaw = getRequiredText(formData, "loteNumber");
   if (!loteRaw) {
     return actionError(
@@ -881,7 +871,7 @@ export async function adminUpdateLote(
 export async function requestCorrection(formData: FormData) {
   const requestId = formData.get("requestId");
   const reason = formData.get("reason");
-  const suggestedDate = parseDate(formData.get("suggestedPaymentDate"));
+  const suggestedDate = parseDateOnly(formData.get("suggestedPaymentDate"));
   if (typeof requestId !== "string") {
     return;
   }

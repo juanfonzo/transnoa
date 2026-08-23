@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatDateOnly } from "@/lib/format";
 import Link from "next/link";
 import { StatusPill } from "@/components/StatusPill";
 
@@ -65,7 +65,7 @@ export default async function TesoreriaPage() {
                     <td className="px-4 py-3">
                       {paidAt ? (
                         <span className="text-sm font-semibold text-slate-900">
-                          {formatDate(paidAt)}
+                          {formatDateOnly(paidAt)}
                         </span>
                       ) : (
                         <span className="text-xs text-slate-500">Pendiente</span>

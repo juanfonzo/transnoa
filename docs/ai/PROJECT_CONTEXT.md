@@ -13,7 +13,7 @@
 - React 19.2.3 y TypeScript 5 estricto.
 - Tailwind CSS 4 vía PostCSS.
 - Prisma Client/CLI 5.22.0.
-- PostgreSQL mediante `DATABASE_URL`; el entorno actual se describe como Neon.
+- PostgreSQL/Neon mediante `DATABASE_URL` para runtime y `DIRECT_URL` para migraciones.
 - Server Components para lectura, Client Components para interacción y Server Actions para mutaciones.
 - Route handlers sólo para exportaciones `.xls` compatibles con Excel.
 - No existe suite de tests automatizados en el estado inicial del kit.
@@ -60,7 +60,7 @@
 - `demo_role` es una cookie de demostración, no autenticación ni RBAC.
 - Las Server Actions buscan actores por rol y no prueban la identidad del solicitante.
 - La firma usa método/demo hash; no es firma legal.
-- No existen migraciones Prisma versionadas; el flujo actual usa `prisma db push`.
+- Existe un baseline Prisma `0_init`; bases existentes requieren `migrate resolve` una sola vez y los despliegues nuevos usan `migrate deploy`.
 - Los adjuntos se guardan como URL; no hay almacenamiento/upload integrado.
 - DNI y CBU requieren controles de acceso, minimización y tratamiento de PII antes de producción.
 

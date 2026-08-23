@@ -18,9 +18,16 @@
 - Preservar versionado y referencias de auditoría.
 - Crédito suma y débito resta en la lectura de saldos.
 - Revisar transacciones para operaciones que cambian estado y crean pago/firma/saldo/auditoría.
+- Tratar inicio, fin y fechas de pago/vigencia como fechas calendario: persistir nuevas entradas a medianoche UTC y formatearlas con UTC; los timestamps de auditoría y tramos conservan semántica de instante.
 
 ## Evolución
 
-Actualmente no existe `prisma/migrations/`; `db:push` aplica schema directamente. Antes de producción sostenida, adoptar una estrategia de migraciones versionadas y separación Development/Preview/Production.
+`prisma/migrations/0_init` representa el baseline completo del schema. La Neon de pruebas existente fue comparada sin drift y marcada con `prisma migrate resolve --applied 0_init`.
+
+- Desarrollo de cambios de schema: generar migraciones nuevas con `prisma migrate dev` sobre una base/branch de desarrollo.
+- Preview y Production: aplicar únicamente `prisma migrate deploy`.
+- Bases existentes creadas con `db push`: ejecutar el baseline una sola vez después de comprobar cero drift.
+- Bases nuevas: ejecutar directamente todas las migraciones; no usar `resolve`.
+- Consultar `docs/technical/deployment.md` para precheck, Vercel y recuperación.
 
 Nunca ejecutar push, seed o SQL sin identificar el destino y confirmar autorización si contiene datos compartidos.

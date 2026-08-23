@@ -1,7 +1,8 @@
 ﻿import type { RequestStatus } from "@prisma/client";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { addDateOnlyDays, parseDateOnly } from "@/lib/date-only";
+import { formatCurrency, formatDate, formatDateOnly } from "@/lib/format";
 import { getRequestStatusLabel, getStatusTone, getToneClasses } from "@/lib/status";
 import { AdminActions } from "@/app/administracion/AdminActions";
 import { AdminRateModal } from "@/app/administracion/AdminRateModal";
@@ -62,13 +63,8 @@ type PageProps = {
 };
 
 function parseDateRange(value: string) {
-  const parsed = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(parsed.getTime())) {
-    return null;
-  }
-  const end = new Date(parsed);
-  end.setDate(parsed.getDate() + 1);
-  return { start: parsed, end };
+  const parsed = parseDateOnly(value);
+  return parsed ? { start: parsed, end: addDateOnlyDays(parsed, 1) } : null;
 }
 
 export default async function AdministracionPage({ searchParams }: PageProps) {
@@ -416,7 +412,7 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                   {formatCurrency(Number(latestRate?.amount ?? 0))}
                 </p>
                 <p className="text-xs text-slate-500">
-                  Vigente desde {formatDate(latestRate?.effectiveFrom)}
+                  Vigente desde {formatDateOnly(latestRate?.effectiveFrom)}
                 </p>
               </div>
               <div className="mt-3">
@@ -439,7 +435,7 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                         Periodo {latestBatch.periodMonth}
                       </p>
                       <p className="text-xs text-slate-500">
-                        Desde {formatDate(latestBatch.effectiveFromDate)}
+                        Desde {formatDateOnly(latestBatch.effectiveFromDate)}
                       </p>
                     </div>
                     <div className="text-xs text-slate-500">
@@ -702,7 +698,7 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                             Lote {loteLabel} - {version.request.requestNumber}
                           </p>
                           <p className="text-xs text-slate-500">
-                            Pago {formatDate(payment?.paidAt)} -{" "}
+                            Pago {formatDateOnly(payment?.paidAt)} -{" "}
                             {version.request.area.name}
                           </p>
                           <div className="mt-2 flex flex-wrap gap-2 text-xs">
@@ -797,7 +793,7 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                           {version?.loteNumber ?? "-"}
                         </td>
                         <td className="px-4 py-3">
-                          {formatDate(version?.plannedPaymentDate)}
+                          {formatDateOnly(version?.plannedPaymentDate)}
                         </td>
                         <td className="px-4 py-3">
                           <StatusPill status={request.status} />
@@ -805,7 +801,7 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                         <td className="px-4 py-3">
                           {paidAt ? (
                             <span className="text-sm font-semibold text-slate-900">
-                              {formatDate(paidAt)}
+                              {formatDateOnly(paidAt)}
                             </span>
                           ) : (
                             <span className="text-xs text-slate-500">
@@ -876,7 +872,7 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                       <td className="px-4 py-3">
                         {row.paidAt ? (
                           <span className="text-sm font-semibold text-slate-900">
-                            {formatDate(row.paidAt)}
+                            {formatDateOnly(row.paidAt)}
                           </span>
                         ) : (
                           <span className="text-xs text-slate-500">-</span>

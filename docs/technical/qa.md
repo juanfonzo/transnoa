@@ -8,6 +8,7 @@
 - `npm run typecheck`
 - `npm run lint`
 - `npm run test:workflow`
+- `npm run test:migration:fresh` (sólo base de pruebas y con `ALLOW_MIGRATION_SMOKE_TEST=1`)
 - `npm run prisma:validate`
 - `npm run build`
 - `npm run kit:ui-check`
@@ -20,7 +21,7 @@
 
 ## Regresiones Del Flujo Crítico
 
-`npm run test:workflow` ejecuta ocho casos sin dependencias nuevas sobre las reglas compartidas por las Server Actions:
+`npm run test:workflow` ejecuta doce casos sin dependencias nuevas sobre las reglas compartidas por las Server Actions y las fechas calendario:
 
 - cobertura de conceptos para todos los días del período;
 - lote, fecha prevista y trabajadores obligatorios antes de firma;
@@ -28,8 +29,11 @@
 - estado y firma vigente antes del primer pago;
 - fecha y referencia real obligatorias para el pago;
 - edición de pagos limitada a solicitudes pagadas.
+- parsing UTC estricto, presentación sin desplazamiento, compatibilidad con horas heredadas y rangos inclusivos de fechas.
 
 El comando forma parte de `npm run verify` y del workflow `Code Quality` de GitHub Actions.
+
+El smoke test de migraciones crea un schema temporal `qa_migration_*`, aplica la historia completa mediante conexión directa, comprueba las tablas y el registro de `0_init`, y elimina ese mismo schema. No forma parte de `verify` porque requiere una base externa autorizada.
 
 ## Prioridades De Escenario
 

@@ -3,43 +3,36 @@
 import { BalanceType, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import {
+  addDateOnlyDays,
+  dateOnlyKey,
+  diffDateOnlyDaysInclusive,
+  parseDateOnly,
+} from "@/lib/date-only";
 
 async function getAdminActor() {
   return prisma.user.findFirst({ where: { role: "ADMIN" } });
 }
 
-function parseDate(value: FormDataEntryValue | null) {
-  if (typeof value !== "string" || value.trim() === "") {
-    return null;
-  }
-  const parsed = new Date(`${value}T00:00:00`);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
 function monthKey(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
   return `${year}-${month}`;
 }
 
 function startOfMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
-}
-
-function diffDaysInclusive(start: Date, end: Date) {
-  const ms = end.getTime() - start.getTime();
-  return Math.max(1, Math.floor(ms / (1000 * 60 * 60 * 24)) + 1);
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
 }
 
 function overlapDays(startA: Date, endA: Date, startB: Date, endB: Date) {
   const start = startA > startB ? startA : startB;
   const end = endA < endB ? endA : endB;
-  if (start > end) return 0;
-  return diffDaysInclusive(start, end);
+  if (dateOnlyKey(start) > dateOnlyKey(end)) return 0;
+  return diffDateOnlyDaysInclusive(start, end);
 }
 
 export async function createRateChange(formData: FormData) {
-  const effectiveFromDate = parseDate(formData.get("effectiveFromDate"));
+  const effectiveFromDate = parseDateOnly(formData.get("effectiveFromDate"));
   const newAmountRaw = formData.get("newAmount");
   const note = formData.get("note");
 
@@ -75,8 +68,7 @@ export async function createRateChange(formData: FormData) {
   }
 
   const monthStart = startOfMonth(effectiveFromDate);
-  const dayBefore = new Date(effectiveFromDate);
-  dayBefore.setDate(dayBefore.getDate() - 1);
+  const dayBefore = addDateOnlyDays(effectiveFromDate, -1);
   if (dayBefore < monthStart) {
     revalidatePath("/administracion");
     return;
@@ -84,7 +76,7 @@ export async function createRateChange(formData: FormData) {
 
   const versions = await prisma.viaticRequestVersion.findMany({
     where: {
-      startDate: { lte: dayBefore },
+      startDate: { lt: effectiveFromDate },
       endDate: { gte: monthStart },
       request: { status: { not: "CANCELLED" } },
     },
@@ -95,7 +87,10 @@ export async function createRateChange(formData: FormData) {
   const workerMap = new Map<string, { days: number; amount: Prisma.Decimal }>();
 
   versions.forEach((version) => {
-    const rangeDays = diffDaysInclusive(version.startDate, version.endDate);
+    const rangeDays = diffDateOnlyDaysInclusive(
+      version.startDate,
+      version.endDate,
+    );
     const overlapped = overlapDays(version.startDate, version.endDate, monthStart, dayBefore);
     if (overlapped === 0) return;
 

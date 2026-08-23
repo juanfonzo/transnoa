@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { toExcelHtml } from "@/lib/excel";
+import { dateOnlyKey } from "@/lib/date-only";
 
 export async function GET() {
   const requests = await prisma.viaticRequest.findMany({
@@ -42,9 +43,11 @@ export async function GET() {
         request.status,
         version?.versionNumber ?? "",
         version?.loteNumber ?? "",
-        version?.startDate ?? "",
-        version?.endDate ?? "",
-        version?.plannedPaymentDate ?? "",
+        version?.startDate ? dateOnlyKey(version.startDate) : "",
+        version?.endDate ? dateOnlyKey(version.endDate) : "",
+        version?.plannedPaymentDate
+          ? dateOnlyKey(version.plannedPaymentDate)
+          : "",
         total,
         request.createdAt,
       ];

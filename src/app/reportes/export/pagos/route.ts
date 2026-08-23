@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { toExcelHtml } from "@/lib/excel";
+import { dateOnlyKey } from "@/lib/date-only";
 
 export async function GET() {
   const payments = await prisma.treasuryPayment.findMany({
@@ -38,7 +39,7 @@ export async function GET() {
         payment.requestVersion.versionNumber,
         request.area.name,
         payment.requestVersion.loteNumber ?? "",
-        payment.paidAt,
+        dateOnlyKey(payment.paidAt),
         payment.paymentReference ?? "",
         total,
         payment.createdBy.name,

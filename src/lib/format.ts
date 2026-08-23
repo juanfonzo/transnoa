@@ -1,3 +1,5 @@
+import { dateOnlyKey, formatDateOnly } from "@/lib/date-only";
+
 export function formatCurrency(amount: number) {
   return new Intl.NumberFormat("es-AR", {
     style: "currency",
@@ -17,8 +19,10 @@ export function formatDateInput(value?: Date | null) {
   if (!value) {
     return "";
   }
-  return value.toISOString().slice(0, 10);
+  return dateOnlyKey(value);
 }
+
+export { formatDateOnly };
 
 export function formatTimeInput(value?: Date | null) {
   if (!value) {
@@ -28,4 +32,3 @@ export function formatTimeInput(value?: Date | null) {
   const minutes = String(value.getMinutes()).padStart(2, "0");
   return `${hours}:${minutes}`;
 }
-

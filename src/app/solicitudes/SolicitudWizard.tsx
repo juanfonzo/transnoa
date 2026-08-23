@@ -7,6 +7,12 @@ import { WorkerCreateModal } from "@/app/solicitudes/WorkerCreateModal";
 import { ActionFeedback } from "@/components/ActionFeedback";
 import { Modal } from "@/components/Modal";
 import { SubmitButton } from "@/components/SubmitButton";
+import {
+  buildDateOnlyKeys,
+  diffDateOnlyDaysInclusive,
+  formatDateOnly,
+  parseDateOnly,
+} from "@/lib/date-only";
 import { formatCurrency } from "@/lib/format";
 
 type AreaOption = {
@@ -35,25 +41,18 @@ type DayAssignment = {
 
 function diffDays(start?: string, end?: string) {
   if (!start || !end) return 0;
-  const startDate = new Date(`${start}T00:00:00`);
-  const endDate = new Date(`${end}T00:00:00`);
-  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-    return 0;
-  }
-  const ms = endDate.getTime() - startDate.getTime();
-  return Math.max(1, Math.floor(ms / (1000 * 60 * 60 * 24)) + 1);
+  const startDate = parseDateOnly(start);
+  const endDate = parseDateOnly(end);
+  if (!startDate || !endDate || endDate < startDate) return 0;
+  return diffDateOnlyDaysInclusive(startDate, endDate);
 }
 
 function buildDates(start?: string, end?: string) {
   if (!start || !end) return [];
-  const days = diffDays(start, end);
-  const base = new Date(`${start}T00:00:00`);
-  if (Number.isNaN(base.getTime())) return [];
-  return Array.from({ length: days }, (_, index) => {
-    const date = new Date(base);
-    date.setDate(base.getDate() + index);
-    return date.toISOString().slice(0, 10);
-  });
+  const startDate = parseDateOnly(start);
+  const endDate = parseDateOnly(end);
+  if (!startDate || !endDate) return [];
+  return buildDateOnlyKeys(startDate, endDate);
 }
 
 export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizardProps) {
@@ -201,10 +200,10 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
   }, [notice]);
 
   const formatDayLabel = (date: string) =>
-    new Intl.DateTimeFormat("es-AR", {
+    formatDateOnly(parseDateOnly(date), {
       day: "2-digit",
       month: "2-digit",
-    }).format(new Date(`${date}T00:00:00`));
+    });
 
   return (
     <>

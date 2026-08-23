@@ -1,112 +1,45 @@
 - Goal (incl. success criteria):
-  - Establish an iterative, role-based testing and improvement process for the Transnoa app at `http://localhost:3000`, with reproducible evidence and prioritized findings.
+  - Iterar pruebas y mejoras por rol/proceso sobre la app en `http://localhost:3000`.
+  - Mantener un flujo reproducible de calidad y un despliegue Vercel/Neon seguro.
 - Constraints/Assumptions:
-  - Follow `AGENTS.md` repo rules and continuity ledger process.
-  - Keep changes small; no new dependencies.
-  - Use existing Next.js router style, Tailwind, and DB layer in repo.
-  - Spanish copy for UI.
-  - Treat `F:\Repositorios\gesuite` as strictly read-only; make no changes there.
-  - Changes are authorized only in `F:\Repositorios\transnoa` and must be adapted to this repository rather than copied blindly.
-  - The app is currently reachable on port 3000.
-  - The connected Neon database is explicitly confirmed by the user as a test database; creating, changing, and cleaning test records is authorized.
+  - Seguir `AGENTS.md`, mantener UTF-8 y cambios pequeños sin dependencias nuevas.
+  - `F:\Repositorios\gesuite` es referencia estrictamente de sólo lectura.
+  - La Neon conectada es de pruebas; el usuario autorizó crear, cambiar y limpiar datos de QA.
+  - La app debe continuar disponible en el puerto 3000.
 - Key decisions:
-  - Lote corrections in Pagos y correcciones update the latest version in place (no new version).
-  - 0.5 viatico only applies on the last day of a request.
-  - Balance adjustments are stored as monetary values at the current viatico rate at time of adjustment.
-  - No viatico quantity edits after a request is marked paid.
-  - Unused viaticos in rendicion create a DEBIT (saldo deudor) for the collaborator.
-  - Vercel deployment requires only the existing `DATABASE_URL`; the current build script already runs Prisma client generation.
-  - The app is a functional POC: role selection is a demo cookie, not production authentication or authorization.
-  - Port the Gesuite factory as an adapted Direct-First kit: project-local skills, optional custom agents, canonical policies, ownership/surface checks, UTF-8 guardrails, hooks, and CI.
-  - Exclude Gesuite-only MCP, Electron, Copilot, WhatsApp, multi-tenant, and deployment rules; preserve only capabilities relevant to Transnoa's Next.js/Prisma/Postgres stack.
-  - Keep custom delegation optional and capped at one thread; ordinary work remains in the main thread.
-  - Use risk-based cycles organized by business journey and role, combining exploratory browser checks, negative cases, invariant checks, and targeted automation.
-  - Do not treat the demo role selector as proof of real authentication/RBAC.
-  - Begin CLI-first with Playwright evidence; add durable automated test files only after selecting stable critical journeys and agreeing on test-data isolation.
-  - First critical improvement batch approved: concepts are mandatory for every travel day; lote and planned payment date are mandatory before signature; state transitions are enforced server-side; a current signature is mandatory before first payment; payment date and real reference are mandatory; validation errors remain visible in the active modal/wizard.
+  - Kit Dev IA adaptado con ejecución Direct-First y delegación opcional máxima de un hilo.
+  - Conceptos obligatorios por día; lote/fecha previstos obligatorios antes de firma.
+  - El primer pago exige estado válido, firma vigente, fecha y referencia reales.
+  - Las fechas calendario se persisten a medianoche UTC y se presentan en UTC; auditoría y tramos siguen siendo timestamps.
+  - `DATABASE_URL` usa el pooler para runtime; Prisma Migrate requiere `DIRECT_URL` sin `-pooler`.
+  - `prisma/migrations/0_init` es el baseline canónico; no editar migraciones aplicadas.
 - State:
-  - First critical workflow-hardening batch implemented and verified against the test Neon database.
+  - Segundo lote completado y verificado.
 - Done:
-  - Read `AGENTS.md` and current `CONTINUITY.md`.
-  - Added Admin module tab layout and split content by section.
-  - Added retroactive apply action and worker balance view in Admin tab.
-  - Added rendiciones data model, actions, UI form, and export route.
-  - Updated Admin page to await async searchParams.
-  - Added Admin payment actions (registrar pago + corregir lote) in Pagos y correcciones.
-  - Removed Tesoreria from main navigation and adjusted home/flow messaging.
-  - Grouped rendiciones by lote with total amount and workers list in Admin.
-  - Added bulk rendition form to apply same data to multiple collaborators.
-  - Added Solo pendientes/Todos toggle for bulk rendiciones selection.
-  - Added rendicion status filter and removed per-worker forms from rendiciones.
-  - Lote corrections now reset status to PENDING_SIGNATURE and remove existing signature.
-  - Modals close after actions complete across admin/solicitudes/tesoreria flows.
-  - Added modal body scroll and solicitud submission confirmation message.
-  - Renamed "Estandarizar" action to "Colocar lote" in Administracion.
-  - Removed "Estados clave" and "Base de datos activa" cards from Panel.
-  - Renamed Reportes module to Tesoreria in navigation and Admin tab.
-  - Updated report exports to Excel-compatible .xls output.
-  - Fixed `applyRetroactiveBatch` ledger entries typing to use `BalanceType`.
-  - Converted Decimal fields to numbers in Excel export rows.
-  - Updated schema to allow decimal days for viaticos and retroactive items.
-  - Added last-day half-day toggle in solicitudes wizard and wired to server action.
-  - Adjusted request creation to compute fractional viaticos per worker.
-  - Updated retroactive day calculation to allow half-day increments.
-  - Display retroactive days with decimals in Administracion.
-  - Added explicit "Editar fechas" CTA and disabled Next button when step is incomplete in Solicitud wizard.
-  - Added consumed viaticos input in rendiciones and persisted it per worker.
-  - Added balance ledger adjustments when consumed viaticos are less than available.
-  - Switched unused viaticos ledger entries to DEBIT (saldo deudor) on rendicion save.
-  - Added success/error notifications for rendicion bulk submit, including saldo deudor notice.
-  - Fixed TypeScript null narrowing in rendicion bulk validation.
-  - Added Tesoreria table in Administracion to list rendiciones completas by lote.
-  - Added "Enviado a tesoreria" badge when rendicion is complete.
-  - Migrated RenditionBulkForm to React.useActionState to clear Next warning.
-  - Drafted `scripts/cleanup-db.sql` to truncate transactional tables.
-  - Executed cleanup script against the shared Neon database.
-  - Inspected the App Router pages, Server Actions, Prisma schema, seed, build configuration, and environment-variable keys.
-  - Verified `DATABASE_URL` is the sole application environment variable and is ignored by Git.
-  - Confirmed there are no Prisma migration files; schema changes must be applied explicitly (current workflow uses `prisma db push`).
-  - Confirmed Vercel detects the existing Next.js build script automatically; reviewed current official Vercel deployment and environment-variable guidance.
-  - Full `npm run verify` passes: kit checks, UTF-8 scan, TypeScript, and ESLint complete with zero errors and six documented pre-existing warnings.
-  - Inventoried Gesuite's tracked Dev IA kit: policies, routing, custom agents, local skills, checks, ownership, surfaces, hooks, CI, and usage guides.
-  - Confirmed Gesuite remained read-only and separated product-specific files from reusable factory mechanisms.
-  - Implemented the adapted Direct-First kit: 14 local skills, 6 optional agents, policies/contracts, technical and usage docs, ownership/surface/UI/encoding checks, Git hook, and GitHub Actions workflows.
-  - Added no dependencies and changed no application runtime behavior.
-  - Validated all 14 skills with `quick_validate.py`; `npm run kit:check`, `npm run kit:test` (9/9), `npm run prisma:validate`, `npm run kit:ui-check -- --all`, `npm run verify`, and `git diff --check` pass.
-  - Installed the repository-local hooks path as `.githooks`; Gesuite `git status --short` remains clean.
-  - Reproduced the pasted lint output: ESLint exits with code 0 and reports the same six known warnings (two unused variables and four `set-state-in-effect` findings).
-  - Confirmed the warnings are intentionally visible and documented in `docs/technical/qa.md`; no product or kit code was changed to suppress them.
-  - Confirmed `http://localhost:3000` responds HTTP 200 and opened it with Playwright CLI.
-  - Initial home-page smoke: correct title and primary navigation, default Admin demo role, and zero browser console errors/warnings; browser session closed cleanly.
-  - Initialized the empty test database with `prisma db push` and the demo seed after proving `/solicitudes` failed because `public.Area` did not exist.
-  - Executed Cycle 1 through the UI with `REQ-0002`: two workers, three dates/concepts, last-day half viatic, Administration correction, re-signature, and payment.
-  - Verified persisted values: `PAID`, one version, 2.5 days and ARS 62,500 per worker, ARS 125,000 total, three concepts, one current signature, payment `QA-PAY-0002`, and audit events across the flow.
-  - Positive checks: initial wizard gating for dates/workers, half-day calculation, corrected dates, signature invalidation after lote/date correction, paid lote lock in UI, payment upsert/edit, and audit presence.
-  - Findings: missing schema on fresh test DB; concepts can be omitted; lote/payment date can be omitted before signature; signature/payment Server Actions lack state-invariant guards; blank payment reference silently becomes `DEP-DEMO`; seed dates shift one day; mobile Tesoreria clips payment/actions; payment edits reuse the same audit action.
-  - `npm run verify` and `npm run prisma:validate` pass; browser console had no new errors after database initialization; Playwright session closed with zero active browsers.
-  - Added typed `ActionResult` responses and shared workflow rules for version readiness, status transitions, concept coverage, payment eligibility, and payment inputs.
-  - Wizard submission now requires at least one non-empty concept for every travel day; Server Actions independently enforce dates, workers, concepts, lote, planned payment date, current signature, payment date, and real payment reference.
-  - Creation, administrative standardization, signing, lote correction, and payment writes now group their related data/status/audit changes in database transactions.
-  - Validation errors remain visible in active wizard/modals through an accessible `role=alert`; relevant HTML fields are also marked `required`, and invalid payment states are disabled in the Admin UI.
-  - Removed the `DEP-DEMO` payment fallback; payment creation and editing now produce distinct audit actions.
-  - Added `npm run test:workflow` with 8/8 passing regression cases, included it in `npm run verify` and GitHub Actions, and documented the new baseline in `docs/technical/qa.md`.
-  - Executed browser/DB acceptance with `REQ-0003`: blank concepts/lote/reference blocked; payment without current signature rejected visibly; valid flow reached `PAID`; persisted one version, one worker/2 days, two dated concepts, current signature, one payment, and audit actions `create_request_wizard`, `admin_standardize`, `sign_request`, `admin_mark_paid`, `admin_update_payment`.
-  - Final checks pass: `npm run kit:ui-check -- --all`, `npm run verify`, `npm run prisma:validate`, `git diff --check`, and `npx next build`; browser console has zero errors and all Playwright sessions are closed.
-  - Full local `npm run build` is blocked only while the Windows dev server holds Prisma's query-engine DLL; `npx next build` succeeds and the app remains HTTP 200. Vercel's Linux build is not subject to that Windows file lock.
+  - Implementado el kit Dev IA adaptado: 14 skills, 6 agentes opcionales, políticas, routing, checks, hooks y CI.
+  - Primer lote crítico implementado y aceptado con pruebas UI/DB (`REQ-0003`).
+  - Agregadas reglas compartidas y 8 pruebas del workflow crítico.
+  - Creado baseline Prisma `0_init` y marcado como aplicado en la Neon existente sólo después de confirmar cero drift.
+  - Agregados `vercel.json`, `vercel-build`, `postinstall`, comandos de migración y guía `docs/technical/deployment.md`.
+  - El wrapper de migración rechaza un pooler Neon sin `DIRECT_URL` y evita exponer URLs/credenciales.
+  - Probada `0_init` en un schema aislado `qa_migration_*`: 18 tablas, cero datos de negocio, migración registrada y schema eliminado.
+  - Verificado `migrate deploy` por conexión directa: sin migraciones pendientes; schema `public` actualizado.
+  - Durante QA se liberó únicamente el advisory lock Prisma `72707369` retenido por PgBouncer; no se alteraron datos de negocio.
+  - Agregado `src/lib/date-only.ts`; parsing, aritmética, filtros, UI y exportaciones `.xls` son estables para registros nuevos `00:00Z` y heredados `03:00Z`.
+  - `npm run test:workflow`: 12/12; `npm run kit:test`: 9/9.
+  - Pasan `npm run verify`, `prisma:validate`, UI check, `npx next build`, `git diff --check`, exports HTTP 200 y smoke de migración.
+  - Tras reiniciar el servidor local, `npm run vercel-build` pasó de extremo a extremo: Prisma Client generado, cero migraciones pendientes y build Next.js completo.
+  - Browser QA: fechas corregidas en Solicitudes/Administración y consola con cero errores/advertencias.
+  - La app continúa respondiendo HTTP 200 en el puerto 3000.
 - Now:
-  - Report the completed first batch and its acceptance evidence.
+  - Handoff del segundo lote.
 - Next:
-  - Jointly select the next batch from remaining findings: fresh-schema deployment, seed/date normalization, mobile Tesoreria table, demo authentication/RBAC, and broader state guards.
+  - Configurar `DIRECT_URL` en Vercel Production y Preview, con ramas/bases separadas.
+  - Próximo lote sugerido: autenticación/RBAC real y adaptación responsive de tablas/acciones críticas.
 - Open questions (UNCONFIRMED if needed):
-  - None for this batch.
+  - UNCONFIRMED: `DIRECT_URL` aún no está cargada en Vercel; el `.env` local actual sólo contiene `DATABASE_URL`.
 - Working set (files/ids/commands):
-  - Source reference: `F:\Repositorios\gesuite` (read-only).
-  - Target: `F:\Repositorios\transnoa`.
-  - Primary entry points: `AGENTS.md`, `GUIA_USO_CODEX_KIT.md`, `GUIA_DESARROLLADOR.md`, `docs/ai/`, `.agents/skills/`, `.codex/agents/`, `scripts/ai-dev-kit/`.
-  - QA runtime: `http://localhost:3000`; Playwright CLI session `transnoa-qa` was closed after the smoke test.
-  - Cycle 1 evidence record: `REQ-0002` / lote `QA-2026-0002` / payment `QA-PAY-0002` in the test database.
-  - Batch 1 acceptance record: `REQ-0003` / lote `QA-2026-0003` / payment `QA-PAY-0003-EDIT` in the test database.
-
-
-
-
+  - Migraciones: `prisma/migrations/0_init/`, `scripts/prisma-migrate-deploy.mjs`, `scripts/verify-fresh-migration.mjs`.
+  - Fechas: `src/lib/date-only.ts`, acciones/páginas/exportaciones relacionadas, `scripts/tests/date-only.test.mjs`.
+  - Despliegue/QA: `vercel.json`, `docs/technical/deployment.md`, `docs/technical/database.md`, `docs/technical/qa.md`.
+  - Validación: `npm run verify`, `npm run kit:test`, `npm run prisma:validate`, `npx next build`, `npm run test:migration:fresh`.
