@@ -3,7 +3,9 @@
 ## Contrato De Entorno
 
 - `DATABASE_URL`: conexión de runtime. En Vercel/Neon conviene usar la URL con pooler.
-- `DIRECT_URL`: conexión directa para `prisma migrate deploy`. Es obligatoria cuando `DATABASE_URL` usa el pooler de Neon; el wrapper falla antes de migrar si falta, evitando advisory locks retenidos por una sesión reutilizada. La aplicación conserva `DATABASE_URL`.
+- `DATABASE_URL_UNPOOLED`: conexión directa que expone la integración Neon/Vercel para herramientas que no deben usar el pooler.
+- `DIRECT_URL`: override opcional para pipelines configurados manualmente. Tiene prioridad sobre `DATABASE_URL_UNPOOLED`.
+- El wrapper usa `DIRECT_URL`, luego `DATABASE_URL_UNPOOLED` y, sólo si `DATABASE_URL` ya es directa, usa esta última. Si sólo existe una URL pooled, falla antes de migrar para evitar advisory locks retenidos por una sesión reutilizada. La aplicación siempre conserva su `DATABASE_URL` de runtime.
 - Production y Preview deben usar bases o ramas Neon distintas. Una Preview nunca debe migrar la base de Production.
 
 ## Build
@@ -61,9 +63,9 @@ El script rechaza la ejecución sin el flag explícito o sin conexión directa, 
 
 ## Checklist De Vercel
 
-- Configurar `DATABASE_URL` y `DIRECT_URL` en Production.
+- Confirmar que la integración Neon expone `DATABASE_URL` y `DATABASE_URL_UNPOOLED` en Production. Si el proyecto no usa la integración, configurar `DIRECT_URL` manualmente.
 - Configurar URLs diferentes para Preview.
-- No reutilizar la URL `-pooler` como `DIRECT_URL`.
+- No reutilizar la URL `-pooler` como `DIRECT_URL` ni como `DATABASE_URL_UNPOOLED`.
 - Confirmar que `prisma/migrations/**` está versionado.
 - Ejecutar el baseline una sola vez si la base ya tenía tablas.
 - Desplegar y comprobar `/solicitudes` y `/administracion` contra el entorno correcto.

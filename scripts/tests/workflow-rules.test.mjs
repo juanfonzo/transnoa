@@ -22,6 +22,7 @@ const {
   validatePaymentEligibility,
   validatePaymentInput,
   validateStatus,
+  validateTreasuryCorrectionEligibility,
   validateVersionReadiness,
 } = await import(moduleUrl);
 
@@ -173,5 +174,29 @@ test("la edición de pago sólo admite solicitudes pagadas", () => {
       hasSignature: true,
     }).code,
     "INVALID_STATUS"
+  );
+});
+
+test("tesorería sólo devuelve solicitudes firmadas y listas para pago", () => {
+  assert.equal(
+    validateTreasuryCorrectionEligibility({
+      status: "READY_FOR_PAYMENT",
+      hasSignature: true,
+    }),
+    null
+  );
+  assert.equal(
+    validateTreasuryCorrectionEligibility({
+      status: "PENDING_SIGNATURE",
+      hasSignature: true,
+    }).code,
+    "INVALID_STATUS"
+  );
+  assert.equal(
+    validateTreasuryCorrectionEligibility({
+      status: "READY_FOR_PAYMENT",
+      hasSignature: false,
+    }).code,
+    "MISSING_SIGNATURE"
   );
 });

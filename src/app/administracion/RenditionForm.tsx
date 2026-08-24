@@ -292,7 +292,7 @@ export function RenditionForm({
       </div>
 
       <SubmitButton
-        label="Guardar rendicion"
+        label="Guardar rendición"
         pendingLabel="Guardando..."
         className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white"
       />

@@ -6,10 +6,12 @@ export type ActionField =
   | "loteNumber"
   | "plannedPaymentDate"
   | "paidAt"
-  | "paymentReference";
+  | "paymentReference"
+  | "reason";
 
 export type ActionErrorCode =
   | "ACTOR_NOT_FOUND"
+  | "FORBIDDEN"
   | "INVALID_INPUT"
   | "NOT_FOUND"
   | "INVALID_STATUS"
@@ -19,7 +21,8 @@ export type ActionErrorCode =
   | "MISSING_PLANNED_PAYMENT_DATE"
   | "MISSING_SIGNATURE"
   | "MISSING_PAYMENT_DATE"
-  | "MISSING_PAYMENT_REFERENCE";
+  | "MISSING_PAYMENT_REFERENCE"
+  | "MISSING_CORRECTION_REASON";
 
 export type ActionResult =
   | {

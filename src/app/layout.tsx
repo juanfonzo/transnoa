@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sistema de Viaticos - TRANSNOA",
-  description: "Demo del flujo de viaticos para TRANSNOA.",
+  title: "Sistema de Viáticos - TRANSNOA",
+  description: "Demo del flujo de viáticos para TRANSNOA.",
 };
 
 export default async function RootLayout({
@@ -35,7 +35,7 @@ export default async function RootLayout({
         <div className="min-h-screen">
           <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-emerald-400 to-sky-500" />
           <header className="border-b border-slate-200/70 bg-white/90 backdrop-blur">
-            <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-5">
+            <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 sm:py-5">
               <div className="flex items-center gap-4">
                 <div className="rounded-2xl bg-slate-900 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-white">
                   POC
@@ -45,7 +45,7 @@ export default async function RootLayout({
                     Transnoa S.A.
                   </p>
                   <h1 className="text-xl font-semibold text-slate-900">
-                    Sistema de viaticos
+                    Sistema de viáticos
                   </h1>
                   <p className="text-xs text-slate-500">
                     Flujo completo de solicitud, firma y pago.
@@ -55,8 +55,8 @@ export default async function RootLayout({
               <RoleSwitcher currentRole={role} />
             </div>
           </header>
-          <AppNav />
-          <main className="mx-auto w-full max-w-6xl px-6 py-8">
+          <AppNav currentRole={role} />
+          <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
             {children}
           </main>
         </div>

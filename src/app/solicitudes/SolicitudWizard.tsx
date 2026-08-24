@@ -231,7 +231,7 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
           setError(null);
         }}
         title="Nueva solicitud"
-        description="Completa los datos principales para enviar a administracion."
+        description="Completá los datos principales para enviar a Administración."
       >
         <div className="mb-4 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
           {steps.map((label, index) => (
@@ -263,7 +263,7 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
           {step === 0 && (
             <div className="grid gap-4 md:grid-cols-2">
               <label className="text-sm font-medium text-slate-700">
-                Area
+                Área
                 <select
                   name="areaId"
                   value={areaId}
@@ -308,7 +308,7 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
                 />
               </label>
               <label className="text-sm font-medium text-slate-700 md:col-span-2">
-                Ubicacion
+                Ubicación
                 <input
                   name="location"
                   value={location}
@@ -324,7 +324,7 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-slate-600">
-                  Selecciona los trabajadores. La asignacion diaria se define en el
+                  Seleccioná los trabajadores. La asignación diaria se define en el
                   siguiente paso.
                 </p>
                 <WorkerCreateModal onCreated={() => router.refresh()} />
@@ -357,7 +357,7 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
                         </span>
                       </span>
                     </span>
-                    <span className="text-xs text-slate-500">Asignar por dia</span>
+                    <span className="text-xs text-slate-500">Asignar por día</span>
                   </label>
                 ))}
               </div>
@@ -374,10 +374,10 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-slate-900">
-                      Medio viatico en el ultimo dia
+                      Medio viático en el último día
                     </p>
                     <p className="text-xs text-slate-500">
-                      Aplica 0,5 viatico solo para el dia de regreso.
+                      Aplica 0,5 viático sólo para el día de regreso.
                     </p>
                   </div>
                   <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
@@ -392,8 +392,8 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
                 </div>
                 {lastDayHalf && hasAssignments && lastDayWorkerIds.size === 0 && (
                   <p className="mt-2 text-xs text-amber-600">
-                    Selecciona colaboradores en el ultimo dia para aplicar el medio
-                    viatico.
+                    Seleccioná colaboradores en el último día para aplicar el medio
+                    viático.
                   </p>
                 )}
                 {lastDayHalf && !hasAssignments && (
@@ -404,7 +404,7 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
               </div>
               {dates.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-500">
-                  Selecciona un rango de fechas para continuar.
+                  Seleccioná un rango de fechas para continuar.
                   <div className="mt-3">
                     <button
                       type="button"
@@ -437,7 +437,7 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
                           <div className="space-y-2">
                             {selectedWorkerList.length === 0 ? (
                               <p className="text-xs text-slate-500">
-                                Selecciona trabajadores en el paso anterior.
+                                Seleccioná trabajadores en el paso anterior.
                               </p>
                             ) : (
                               selectedWorkerList.map((worker) => {
@@ -478,7 +478,7 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
                             )}
                           </div>
                           <label className="text-xs font-medium text-slate-600">
-                            Conceptos del dia
+                            Conceptos del día
                             <textarea
                               value={assignment?.conceptsText ?? ""}
                               aria-invalid={!assignment?.conceptsText.trim()}
@@ -520,10 +520,10 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Periodo
+                    Período
                   </span>
                   <span className="font-semibold text-slate-900">
-                    {startDate || "-"} a {endDate || "-"} ({daysCount} dias calendario)
+                    {startDate || "-"} a {endDate || "-"} ({daysCount} días calendario)
                   </span>
                 </div>
               </div>
@@ -536,7 +536,7 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
                     <li key={worker.id} className="flex justify-between">
                       <span>{worker.name}</span>
                       <span className="text-slate-500">
-                        {formatViaticDays(getViaticDays(worker.id))} viatico(s)
+                        {formatViaticDays(getViaticDays(worker.id))} viático(s)
                       </span>
                     </li>
                   ))}
@@ -544,7 +544,7 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
               </div>
               <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Conceptos del periodo
+                  Conceptos del período
                 </p>
                 <p className="mt-2 text-sm text-slate-600">
                   {Object.values(dayPlanPayload).reduce(
@@ -589,7 +589,7 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
               </button>
             ) : (
               <SubmitButton
-                label="Enviar a administracion"
+                label="Enviar a Administración"
                 pendingLabel="Enviando..."
                 className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white"
               />

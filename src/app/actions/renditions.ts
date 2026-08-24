@@ -88,7 +88,7 @@ function isHalfStep(value: number) {
 }
 
 function getRenditionBalanceReason(requestWorkerId: string) {
-  return `Saldo rendicion ${requestWorkerId}`;
+  return `Saldo rendición ${requestWorkerId}`;
 }
 
 async function upsertRenditionBalance({
@@ -335,7 +335,7 @@ export async function upsertRenditionBulk(
   if (requestWorkerIds.length === 0) {
     return {
       status: "error",
-      message: "Selecciona al menos un colaborador.",
+      message: "Seleccioná al menos un colaborador.",
     };
   }
 
@@ -372,7 +372,7 @@ export async function upsertRenditionBulk(
     if (consumed < 0 || !isHalfStep(consumed)) {
       return {
         status: "error",
-        message: "Los viaticos consumidos deben ser multiplos de 0,5.",
+        message: "Los viáticos consumidos deben ser múltiplos de 0,5.",
       };
     }
     const exceeds = requestWorkers.some(
@@ -381,7 +381,7 @@ export async function upsertRenditionBulk(
     if (exceeds) {
       return {
         status: "error",
-        message: "Los viaticos consumidos no pueden superar lo disponible.",
+        message: "Los viáticos consumidos no pueden superar lo disponible.",
       };
     }
   }
@@ -458,7 +458,7 @@ export async function upsertRenditionBulk(
 
   return {
     status: "success",
-    message: "Rendicion generada.",
+    message: "Rendición generada.",
     balanceCount,
   };
 }

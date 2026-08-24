@@ -28,6 +28,6 @@
 - Preview y Production: aplicar únicamente `prisma migrate deploy`.
 - Bases existentes creadas con `db push`: ejecutar el baseline una sola vez después de comprobar cero drift.
 - Bases nuevas: ejecutar directamente todas las migraciones; no usar `resolve`.
-- Consultar `docs/technical/deployment.md` para precheck, Vercel y recuperación.
+- Para despliegues, el wrapper acepta `DIRECT_URL` o la variable oficial `DATABASE_URL_UNPOOLED` de Neon/Vercel. Consultar `docs/technical/deployment.md` para precheck, Vercel y recuperación.
 
 Nunca ejecutar push, seed o SQL sin identificar el destino y confirmar autorización si contiene datos compartidos.

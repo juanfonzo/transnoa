@@ -26,14 +26,14 @@ export function AdminRateModal({ currentAmount, effectiveFrom }: AdminRateModalP
         onClick={() => setOpen(true)}
         className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white"
       >
-        Ajustar viatico diario
+        Ajustar viático diario
       </button>
 
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title="Nuevo valor de viatico"
-        description="Define el monto y la fecha desde la que aplica. Si la fecha ya paso, se genera ajuste retroactivo."
+        title="Nuevo valor de viático"
+        description="Definí el monto y la fecha desde la que aplica. Si la fecha ya pasó, se genera un ajuste retroactivo."
       >
         <form action={handleSubmit} className="space-y-4">
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">

@@ -1,6 +1,8 @@
 - Goal (incl. success criteria):
   - Iterar pruebas y mejoras por rol/proceso sobre la app en `http://localhost:3000`.
   - Mantener un flujo reproducible de calidad y un despliegue Vercel/Neon seguro.
+  - Elevar la demo a una experiencia comercial excelente que comunique valor, madurez y beneficios concretos para cada rol de Transnoa.
+  - Desbloquear `vercel-build` cuando Vercel sólo dispone de la conexión Neon integrada, sin convertir la ausencia de una conexión apta para migraciones en un despliegue inseguro.
 - Constraints/Assumptions:
   - Seguir `AGENTS.md`, mantener UTF-8 y cambios pequeños sin dependencias nuevas.
   - `F:\Repositorios\gesuite` es referencia estrictamente de sólo lectura.
@@ -13,8 +15,10 @@
   - Las fechas calendario se persisten a medianoche UTC y se presentan en UTC; auditoría y tramos siguen siendo timestamps.
   - `DATABASE_URL` usa el pooler para runtime; Prisma Migrate requiere `DIRECT_URL` sin `-pooler`.
   - `prisma/migrations/0_init` es el baseline canónico; no editar migraciones aplicadas.
+  - La demo seguirá el requerimiento original: Tesorería registra pagos y solicita correcciones; Administración valida, estandariza y resuelve correcciones.
+  - El wrapper de migraciones prioriza `DIRECT_URL`, acepta `DATABASE_URL_UNPOOLED` de la integración Neon/Vercel y nunca migra por una URL pooled como fallback silencioso.
 - State:
-  - Segundo lote completado y verificado.
+  - Corrección de Vercel y segundo lote comercial implementados y verificados; listo para redeploy y handoff.
 - Done:
   - Implementado el kit Dev IA adaptado: 14 skills, 6 agentes opcionales, políticas, routing, checks, hooks y CI.
   - Primer lote crítico implementado y aceptado con pruebas UI/DB (`REQ-0003`).
@@ -31,15 +35,38 @@
   - Tras reiniciar el servidor local, `npm run vercel-build` pasó de extremo a extremo: Prisma Client generado, cero migraciones pendientes y build Next.js completo.
   - Browser QA: fechas corregidas en Solicitudes/Administración y consola con cero errores/advertencias.
   - La app continúa respondiendo HTTP 200 en el puerto 3000.
+  - Auditoría Playwright realizada en 1440x1000, 768x900 y 390x844 para Panel, Solicitudes, Administración, Rendiciones, Colaboradores y Tesorería; consola sin errores ni warnings.
+  - Hallazgos críticos: navegación/acciones no respetan el rol demo, `FlowCard` queda desincronizado al cambiar de rol, Colaborador ve/crea trabajadores, Jefe accede a Administración, tablas pierden columnas/acciones en móvil y Tesorería visible no ejecuta el flujo de pago definido en `requerimientos.md`.
+  - La base de demo actual sólo muestra tres solicitudes pagadas; Administración aparece con cinco contadores en cero, sin ejemplos de firma, devolución, corrección, retroactivo o rendición completa.
+  - Accesibilidad modal pendiente: sin `role=dialog`, `aria-modal`, movimiento/trampa de foco ni cierre con Escape.
+  - Definido el contrato de experiencia demo por rol en `docs/product/demo-experience.md`.
+  - Implementadas navegación, páginas y controles de acceso coherentes por rol demo; exportaciones protegidas server-side para Administración/Tesorería.
+  - Tesorería registra/edita pagos y solicita correcciones; Administración valida, estandariza y resuelve correcciones.
+  - Colaborador dispone de una vista personal demostrativa, sin directorio ni alta de trabajadores.
+  - Agregado seed reproducible y acotado con siete escenarios comerciales `REQ-1001` a `REQ-1007`; limpia nominalmente los tres registros de QA heredados `REQ-0001` a `REQ-0003` sin borrados globales.
+  - Verificados visualmente los cuatro roles en desktop, tablet y móvil, incluidos pago, devolución, foco modal y acceso denegado.
+  - Validación final: `npm run verify` (13/13 tests, 0 errores y 4 warnings heredados), UI strict, Prisma validate, `npx next build`, diff check, seed y tres exportaciones HTTP 200; consola Playwright 0/0.
+  - `npm run build` no puede regenerar Prisma mientras Windows mantiene el DLL cargado; el build Next.js aislado sí pasa y no se detuvo ningún proceso ajeno para forzarlo.
+  - Corregido el fallo de Vercel: `DATABASE_URL_UNPOOLED` ya es reconocida, con 6/6 regresiones; `npm run vercel-build` pasó completo contra la Neon de pruebas y no encontró migraciones pendientes.
+  - Definido `docs/product/request-detail-experience.md` y agregado detalle server-side por rol con resumen, cuadrilla, conceptos, versiones, firma, pago, correcciones, rendiciones y timeline.
+  - Agregados controles demo server-side para creación, estandarización, corrección y firma, además de los ya existentes para pago/devolución.
+  - Detalle enlazado desde Jefatura, Administración, Tesorería y Mi cuenta; Colaborador sólo ve su asignación y recibe acceso insuficiente ante una solicitud ajena.
+  - QA Playwright en 390/768/1440 px: firma real desde el detalle, rechazo de pago con rol incorrecto, modal/teclado, evidencia de firma/pago y consola 0 errores/0 warnings.
+  - Seed restaurado con exactamente siete escenarios y cronología explícita creación → firma → devolución/pago.
+  - Validación final: `npm run verify` (15 workflow + 6 deployment), UI strict, Prisma validate, `git diff --check` y `npm run vercel-build` completo usando `DATABASE_URL_UNPOOLED`.
 - Now:
-  - Handoff del segundo lote.
+  - Handoff de la corrección de despliegue y del detalle trazable.
 - Next:
-  - Configurar `DIRECT_URL` en Vercel Production y Preview, con ramas/bases separadas.
-  - Próximo lote sugerido: autenticación/RBAC real y adaptación responsive de tablas/acciones críticas.
+  - Redeploy en Vercel y confirmar que la integración Neon expone `DATABASE_URL_UNPOOLED` en el entorno objetivo.
 - Open questions (UNCONFIRMED if needed):
-  - UNCONFIRMED: `DIRECT_URL` aún no está cargada en Vercel; el `.env` local actual sólo contiene `DATABASE_URL`.
+  - UNCONFIRMED: si la integración Neon del proyecto no publica `DATABASE_URL_UNPOOLED`, debe habilitarse esa variable o configurarse `DIRECT_URL` manualmente antes del redeploy.
 - Working set (files/ids/commands):
   - Migraciones: `prisma/migrations/0_init/`, `scripts/prisma-migrate-deploy.mjs`, `scripts/verify-fresh-migration.mjs`.
   - Fechas: `src/lib/date-only.ts`, acciones/páginas/exportaciones relacionadas, `scripts/tests/date-only.test.mjs`.
   - Despliegue/QA: `vercel.json`, `docs/technical/deployment.md`, `docs/technical/database.md`, `docs/technical/qa.md`.
-  - Validación: `npm run verify`, `npm run kit:test`, `npm run prisma:validate`, `npx next build`, `npm run test:migration:fresh`.
+  - Wrapper Vercel: `scripts/prisma-migrate-deploy.mjs`, `scripts/lib/prisma-migration-connection.mjs`, `.env.example`.
+  - Experiencia demo: `docs/product/demo-experience.md`, `src/lib/demo-experience.ts`, `src/components/AppNav.tsx`, `src/components/RoleAccessNotice.tsx`.
+  - Roles: `src/app/{solicitudes,administracion,tesoreria,colaboradores,reportes}/`, `src/app/actions/requests.ts`.
+  - Datos demo: `prisma/seed.js` (`REQ-1001` a `REQ-1007`).
+  - Detalle: `src/app/solicitudes/[id]/`, `src/lib/request-timeline.ts`, `docs/product/request-detail-experience.md`.
+  - Validación: `npm run verify`, `npm run kit:ui-check:strict`, `npm run prisma:validate`, `npx next build`, Playwright y `npm run db:seed`.

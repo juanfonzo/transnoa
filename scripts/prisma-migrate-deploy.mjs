@@ -1,57 +1,49 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import {
+  MIGRATION_URL_ENV_NAMES,
+  resolveMigrationConnection,
+} from "./lib/prisma-migration-connection.mjs";
 
 const require = createRequire(import.meta.url);
 const prismaCli = require.resolve("prisma/build/index.js");
 
-function readDotEnvValue(name) {
-  if (!existsSync(".env")) return undefined;
+function readDotEnvValues(names) {
+  if (!existsSync(".env")) return {};
 
-  const prefix = `${name}=`;
-  const line = readFileSync(".env", "utf8")
-    .split(/\r?\n/)
-    .find((candidate) => candidate.startsWith(prefix));
-
-  return line?.slice(prefix.length).trim().replace(/^(['"])(.*)\1$/, "$2");
+  const lines = readFileSync(".env", "utf8").split(/\r?\n/);
+  return Object.fromEntries(
+    names.flatMap((name) => {
+      const prefix = `${name}=`;
+      const line = lines.find((candidate) => candidate.startsWith(prefix));
+      const value = line
+        ?.slice(prefix.length)
+        .trim()
+        .replace(/^(['"])(.*)\1$/, "$2");
+      return value ? [[name, value]] : [];
+    }),
+  );
 }
 
-const runtimeUrl =
-  process.env.DATABASE_URL?.trim() || readDotEnvValue("DATABASE_URL");
-const directUrl = process.env.DIRECT_URL?.trim() || readDotEnvValue("DIRECT_URL");
+const dotEnv = readDotEnvValues([
+  "DATABASE_URL",
+  ...MIGRATION_URL_ENV_NAMES,
+]);
+const connection = resolveMigrationConnection({ env: process.env, dotEnv });
 
-if (directUrl) {
-  try {
-    if (new URL(directUrl).hostname.includes("-pooler.")) {
-      console.error("DIRECT_URL debe usar el endpoint directo, no el pooler de Neon.");
-      process.exit(1);
-    }
-  } catch {
-    // Prisma mostrará el diagnóstico de una URL inválida.
-  }
-}
-
-if (runtimeUrl && !directUrl) {
-  try {
-    const hostname = new URL(runtimeUrl).hostname;
-    if (hostname.includes("-pooler.")) {
-      console.error(
-        "DIRECT_URL es obligatoria para migrar cuando DATABASE_URL usa el pooler de Neon.",
-      );
-      process.exit(1);
-    }
-  } catch {
-    // Prisma mostrará el diagnóstico de una URL inválida.
-  }
+if (connection.error) {
+  console.error(connection.error);
+  process.exit(1);
 }
 
 const childEnv = { ...process.env };
-if (directUrl) {
-  childEnv.DATABASE_URL = directUrl;
+if (connection.migrationUrl) {
+  childEnv.DATABASE_URL = connection.migrationUrl;
 }
 
 console.log(
-  `Prisma migrate deploy: ${directUrl ? "conexión directa" : "DATABASE_URL"}.`,
+  `Prisma migrate deploy: conexión provista por ${connection.sourceName}.`,
 );
 
 const result = spawnSync(

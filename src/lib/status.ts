@@ -9,17 +9,17 @@ type StatusMeta = {
 export const requestStatusMeta: Record<RequestStatus, StatusMeta> = {
   DRAFT: {
     label: "Borrador",
-    description: "Sin enviar aun",
+    description: "Sin enviar aún",
     tone: "slate",
   },
   SUBMITTED_TO_ADMIN: {
-    label: "Enviado a administracion",
+    label: "Enviado a Administración",
     description: "Listo para validar",
     tone: "sky",
   },
   ADMIN_REVIEW: {
-    label: "En revision",
-    description: "Admin revisando",
+    label: "En revisión",
+    description: "Administración revisando",
     tone: "amber",
   },
   PENDING_SIGNATURE: {
@@ -29,22 +29,22 @@ export const requestStatusMeta: Record<RequestStatus, StatusMeta> = {
   },
   SIGNED: {
     label: "Firmado",
-    description: "Listo para tesoreria",
+    description: "Listo para Tesorería",
     tone: "sky",
   },
   SENT_TO_TREASURY: {
-    label: "En tesoreria",
+    label: "En Tesorería",
     description: "Listo para pago",
     tone: "sky",
   },
   TREASURY_RETURNED: {
-    label: "Devuelto por tesoreria",
-    description: "Requiere correccion",
+    label: "Devuelto por Tesorería",
+    description: "Requiere corrección",
     tone: "rose",
   },
   ADMIN_CORRECTION: {
-    label: "En correccion",
-    description: "Admin ajustando",
+    label: "En corrección",
+    description: "Administración ajustando",
     tone: "amber",
   },
   READY_FOR_PAYMENT: {

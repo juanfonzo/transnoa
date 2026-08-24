@@ -21,6 +21,7 @@ import {
   validatePaymentEligibility,
   validatePaymentInput,
   validateStatus,
+  validateTreasuryCorrectionEligibility,
   validateVersionReadiness,
   type WorkflowIssue,
 } from "@/lib/workflow-rules";
@@ -43,6 +44,10 @@ function getRequiredText(formData: FormData, field: string) {
 
 function issueToResult(issue: WorkflowIssue): ActionResult {
   return actionError(issue.code, issue.message, issue.field);
+}
+
+function revalidateRequestDetail(requestId: string) {
+  revalidatePath(`/solicitudes/${requestId}`);
 }
 
 function parseDayPlan(value: FormDataEntryValue | null): DayPlan | null {
@@ -198,8 +203,13 @@ export async function createDemoRequest() {
 export async function createRequestWizard(
   formData: FormData
 ): Promise<ActionResult> {
-  const role = (await getDemoRole()) as UserRole;
-  const actor = await getActor(role);
+  if ((await getDemoRole()) !== "JEFE_AREA") {
+    return actionError(
+      "FORBIDDEN",
+      "Cambiá al rol Jefe de Área para crear una solicitud."
+    );
+  }
+  const actor = await getActor("JEFE_AREA");
   if (!actor) {
     return actionError(
       "ACTOR_NOT_FOUND",
@@ -246,7 +256,7 @@ export async function createRequestWizard(
   if (workerIds.length === 0) {
     return actionError(
       "MISSING_WORKERS",
-      "Selecciona al menos un trabajador.",
+      "Seleccioná al menos un trabajador.",
       "workerIds"
     );
   }
@@ -332,7 +342,7 @@ export async function createRequestWizard(
   if (workerData.length === 0) {
     return actionError(
       "MISSING_WORKERS",
-      "Asigna al menos un día a alguno de los trabajadores seleccionados.",
+      "Asigná al menos un día a alguno de los trabajadores seleccionados.",
       "workerIds"
     );
   }
@@ -403,6 +413,12 @@ export async function createRequestWizard(
 export async function adminStandardize(
   formData: FormData
 ): Promise<ActionResult> {
+  if ((await getDemoRole()) !== "ADMIN") {
+    return actionError(
+      "FORBIDDEN",
+      "Cambiá al rol Administración para validar una solicitud."
+    );
+  }
   const requestId = formData.get("requestId");
   if (typeof requestId !== "string") {
     return actionError("INVALID_INPUT", "No se pudo identificar la solicitud.");
@@ -477,18 +493,30 @@ export async function adminStandardize(
 
   revalidatePath("/administracion");
   revalidatePath("/solicitudes");
+  revalidateRequestDetail(requestId);
   return actionSuccess("La solicitud fue enviada a firma.");
 }
 
-export async function adminCreateCorrection(formData: FormData) {
+export async function adminCreateCorrection(
+  formData: FormData
+): Promise<ActionResult> {
+  if ((await getDemoRole()) !== "ADMIN") {
+    return actionError(
+      "FORBIDDEN",
+      "Cambiá al rol Administración para resolver una corrección."
+    );
+  }
   const requestId = formData.get("requestId");
   if (typeof requestId !== "string") {
-    return;
+    return actionError("INVALID_INPUT", "No se pudo identificar la solicitud.");
   }
 
   const actor = await getActor("ADMIN");
   if (!actor) {
-    return;
+    return actionError(
+      "ACTOR_NOT_FOUND",
+      "No se encontró un usuario de administración habilitado."
+    );
   }
 
   const request = await prisma.viaticRequest.findUnique({
@@ -503,8 +531,15 @@ export async function adminCreateCorrection(formData: FormData) {
   });
   const version = request?.versions[0];
   if (!request || !version) {
-    return;
+    return actionError("NOT_FOUND", "La solicitud ya no está disponible.");
   }
+
+  const statusIssue = validateStatus(
+    request.status,
+    ["TREASURY_RETURNED", "ADMIN_CORRECTION"],
+    "La solicitud ya no tiene una corrección administrativa pendiente."
+  );
+  if (statusIssue) return issueToResult(statusIssue);
 
   const plannedPaymentDate = parseDateOnly(formData.get("plannedPaymentDate"));
   const newVersionNumber = version.versionNumber + 1;
@@ -517,7 +552,7 @@ export async function adminCreateCorrection(formData: FormData) {
       endDate: version.endDate,
       plannedPaymentDate: plannedPaymentDate ?? version.plannedPaymentDate,
       loteNumber: String(formData.get("loteNumber") || version.loteNumber || ""),
-      notes: String(formData.get("notes") || "Correccion solicitada"),
+      notes: String(formData.get("notes") || "Corrección solicitada"),
       createdByUserId: actor.id,
     },
   });
@@ -572,9 +607,17 @@ export async function adminCreateCorrection(formData: FormData) {
 
   revalidatePath("/administracion");
   revalidatePath("/solicitudes");
+  revalidateRequestDetail(requestId);
+  return actionSuccess("La corrección fue resuelta y requiere una nueva firma.");
 }
 
 export async function signRequest(formData: FormData): Promise<ActionResult> {
+  if ((await getDemoRole()) !== "JEFE_AREA") {
+    return actionError(
+      "FORBIDDEN",
+      "Cambiá al rol Jefe de Área para firmar una solicitud."
+    );
+  }
   const requestId = formData.get("requestId");
   if (typeof requestId !== "string") {
     return actionError("INVALID_INPUT", "No se pudo identificar la solicitud.");
@@ -649,13 +692,11 @@ export async function signRequest(formData: FormData): Promise<ActionResult> {
   revalidatePath("/solicitudes");
   revalidatePath("/tesoreria");
   revalidatePath("/administracion");
+  revalidateRequestDetail(requestId);
   return actionSuccess("La solicitud fue firmada y quedó lista para pago.");
 }
 
-async function savePayment(
-  formData: FormData,
-  actorRole: "ADMIN" | "TESORERIA"
-): Promise<ActionResult> {
+async function savePayment(formData: FormData): Promise<ActionResult> {
   const requestId = formData.get("requestId");
   const paidAtValue = parseDateOnly(formData.get("paidAt"));
   const paymentReference = getRequiredText(formData, "paymentReference");
@@ -669,7 +710,7 @@ async function savePayment(
   });
   if (paymentInputIssue) return issueToResult(paymentInputIssue);
 
-  const actor = await getActor(actorRole);
+  const actor = await getActor("TESORERIA");
   if (!actor) {
     return actionError(
       "ACTOR_NOT_FOUND",
@@ -716,13 +757,7 @@ async function savePayment(
   if (readinessIssue) return issueToResult(readinessIssue);
 
   const isUpdate = Boolean(version.payment);
-  const auditAction = isUpdate
-    ? actorRole === "ADMIN"
-      ? "admin_update_payment"
-      : "update_payment"
-    : actorRole === "ADMIN"
-      ? "admin_mark_paid"
-      : "mark_paid";
+  const auditAction = isUpdate ? "update_payment" : "mark_paid";
 
   await prisma.$transaction([
     prisma.viaticRequest.update({
@@ -740,7 +775,7 @@ async function savePayment(
         requestVersionId: version.id,
         paidAt: paidAtValue!,
         paymentReference,
-        notes: notes || `Pago registrado desde ${actorRole.toLowerCase()}`,
+        notes: notes || "Pago registrado desde Tesorería",
         createdByUserId: actor.id,
       },
     }),
@@ -762,20 +797,29 @@ async function savePayment(
   revalidatePath("/tesoreria");
   revalidatePath("/solicitudes");
   revalidatePath("/administracion");
+  revalidateRequestDetail(requestId);
   return actionSuccess(isUpdate ? "El pago fue actualizado." : "El pago fue registrado.");
 }
 
 export async function markPaid(formData: FormData): Promise<ActionResult> {
-  return savePayment(formData, "TESORERIA");
-}
-
-export async function adminMarkPaid(formData: FormData): Promise<ActionResult> {
-  return savePayment(formData, "ADMIN");
+  if ((await getDemoRole()) !== "TESORERIA") {
+    return actionError(
+      "FORBIDDEN",
+      "Cambiá al rol Tesorería para registrar o actualizar un pago."
+    );
+  }
+  return savePayment(formData);
 }
 
 export async function adminUpdateLote(
   formData: FormData
 ): Promise<ActionResult> {
+  if ((await getDemoRole()) !== "ADMIN") {
+    return actionError(
+      "FORBIDDEN",
+      "Cambiá al rol Administración para corregir lote y fecha."
+    );
+  }
   const requestId = formData.get("requestId");
   if (typeof requestId !== "string") {
     return actionError("INVALID_INPUT", "No se pudo identificar la solicitud.");
@@ -850,8 +894,8 @@ export async function adminUpdateLote(
     }),
     prisma.auditLog.create({
       data: {
-        entity: "viatic_request_version",
-        entityId: version.id,
+        entity: "viatic_request",
+        entityId: request.id,
         action: "admin_update_lote",
         afterJson: {
           loteNumber: loteRaw,
@@ -865,63 +909,90 @@ export async function adminUpdateLote(
 
   revalidatePath("/administracion");
   revalidatePath("/solicitudes");
+  revalidateRequestDetail(requestId);
   return actionSuccess("El lote fue corregido y requiere una nueva firma.");
 }
 
-export async function requestCorrection(formData: FormData) {
+export async function requestCorrection(formData: FormData): Promise<ActionResult> {
+  if ((await getDemoRole()) !== "TESORERIA") {
+    return actionError(
+      "FORBIDDEN",
+      "Cambiá al rol Tesorería para solicitar una corrección."
+    );
+  }
+
   const requestId = formData.get("requestId");
-  const reason = formData.get("reason");
+  const reason = getRequiredText(formData, "reason");
   const suggestedDate = parseDateOnly(formData.get("suggestedPaymentDate"));
   if (typeof requestId !== "string") {
-    return;
+    return actionError("INVALID_INPUT", "No se pudo identificar la solicitud.");
+  }
+  if (!reason) {
+    return actionError(
+      "MISSING_CORRECTION_REASON",
+      "Explicá el motivo de la devolución.",
+      "reason"
+    );
   }
 
   const actor = await getActor("TESORERIA");
   if (!actor) {
-    return;
+    return actionError(
+      "ACTOR_NOT_FOUND",
+      "No se encontró un usuario de Tesorería habilitado."
+    );
   }
 
   const request = await prisma.viaticRequest.findUnique({
     where: { id: requestId },
     include: {
-      versions: { orderBy: { versionNumber: "desc" }, take: 1 },
+      versions: {
+        orderBy: { versionNumber: "desc" },
+        take: 1,
+        include: { signature: true },
+      },
     },
   });
 
   const version = request?.versions[0];
   if (!request || !version) {
-    return;
+    return actionError("NOT_FOUND", "La solicitud ya no está disponible.");
   }
 
-  await prisma.viaticRequest.update({
-    where: { id: requestId },
-    data: { status: "TREASURY_RETURNED" },
+  const eligibilityIssue = validateTreasuryCorrectionEligibility({
+    status: request.status,
+    hasSignature: Boolean(version.signature),
   });
+  if (eligibilityIssue) return issueToResult(eligibilityIssue);
 
-  await prisma.correctionRequest.create({
-    data: {
-      requestVersionId: version.id,
-      requestedByUserId: actor.id,
-      reason:
-        typeof reason === "string" && reason.trim() !== ""
-          ? reason
-          : "Banco no habil",
-      suggestedPaymentDate: suggestedDate ?? addDays(new Date(), 2),
-    },
-  });
-
-  await prisma.auditLog.create({
-    data: {
-      entity: "viatic_request",
-      entityId: request.id,
-      action: "request_correction",
-      afterJson: { status: "TREASURY_RETURNED" },
-      userId: actor.id,
-    },
-  });
+  await prisma.$transaction([
+    prisma.viaticRequest.update({
+      where: { id: requestId },
+      data: { status: "TREASURY_RETURNED" },
+    }),
+    prisma.correctionRequest.create({
+      data: {
+        requestVersionId: version.id,
+        requestedByUserId: actor.id,
+        reason,
+        suggestedPaymentDate: suggestedDate ?? addDays(new Date(), 2),
+      },
+    }),
+    prisma.auditLog.create({
+      data: {
+        entity: "viatic_request",
+        entityId: request.id,
+        action: "request_correction",
+        afterJson: { status: "TREASURY_RETURNED", reason },
+        userId: actor.id,
+      },
+    }),
+  ]);
 
   revalidatePath("/administracion");
   revalidatePath("/tesoreria");
   revalidatePath("/solicitudes");
+  revalidateRequestDetail(requestId);
+  return actionSuccess("La solicitud fue devuelta a Administración.");
 }
 

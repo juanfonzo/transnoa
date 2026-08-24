@@ -30,6 +30,11 @@ type PaymentInput = {
   paymentReference: string;
 };
 
+type TreasuryCorrectionEligibilityInput = {
+  status: RequestStatus;
+  hasSignature: boolean;
+};
+
 export const STANDARDIZE_ALLOWED_STATUSES: RequestStatus[] = [
   "SUBMITTED_TO_ADMIN",
   "ADMIN_REVIEW",
@@ -166,6 +171,27 @@ export function validatePaymentInput({
       code: "MISSING_PAYMENT_REFERENCE",
       message: "Ingresa la referencia real del depósito.",
       field: "paymentReference",
+    };
+  }
+
+  return null;
+}
+
+export function validateTreasuryCorrectionEligibility({
+  status,
+  hasSignature,
+}: TreasuryCorrectionEligibilityInput): WorkflowIssue | null {
+  if (status !== "READY_FOR_PAYMENT") {
+    return {
+      code: "INVALID_STATUS",
+      message: "Sólo se puede devolver una solicitud lista para pago.",
+    };
+  }
+
+  if (!hasSignature) {
+    return {
+      code: "MISSING_SIGNATURE",
+      message: "La versión actual debe estar firmada antes de solicitar una corrección.",
     };
   }
 

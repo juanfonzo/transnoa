@@ -1,8 +1,14 @@
 import { prisma } from "@/lib/prisma";
+import { getDemoRole } from "@/lib/demo-auth";
 import { toExcelHtml } from "@/lib/excel";
 import { dateOnlyKey } from "@/lib/date-only";
 
 export async function GET() {
+  const role = await getDemoRole();
+  if (role !== "ADMIN" && role !== "TESORERIA") {
+    return new Response("Reporte no disponible para el rol activo.", { status: 403 });
+  }
+
   const requests = await prisma.viaticRequest.findMany({
     orderBy: { createdAt: "desc" },
     include: {

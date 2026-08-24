@@ -24,25 +24,28 @@ export function RoleSwitcher({ currentRole }: RoleSwitcherProps) {
       const formData = new FormData();
       formData.set("role", value);
       await setRole(formData);
+      router.push("/");
       router.refresh();
     });
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
-        Modo demo
+    <div className="flex w-full flex-nowrap items-center gap-2 sm:w-auto sm:gap-3">
+      <div className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+        <span className="sm:hidden">Demo</span>
+        <span className="hidden sm:inline">Modo demo</span>
       </div>
-      <label className="text-sm font-medium text-slate-700" htmlFor="demo-role">
+      <label className="sr-only text-sm font-medium text-slate-700 lg:not-sr-only" htmlFor="demo-role">
         Rol activo
       </label>
-      <div className="relative">
+      <div className="relative min-w-0 flex-1 sm:flex-none">
         <select
           id="demo-role"
           name="role"
           value={selectedRole}
           onChange={(event) => handleChange(event.target.value as DemoRole)}
-          className="rounded-full border border-slate-200 bg-white px-4 py-2 pr-10 text-sm font-semibold text-slate-800 shadow-sm focus:border-slate-400 focus:outline-none"
+          disabled={isPending}
+          className="min-h-11 w-full rounded-full border border-slate-200 bg-white px-4 py-2 pr-10 text-sm font-semibold text-slate-800 shadow-sm focus-visible:border-slate-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-wait disabled:bg-slate-50 sm:w-auto"
         >
           {demoRoles.map((role) => (
             <option key={role} value={role}>

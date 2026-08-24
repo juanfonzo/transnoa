@@ -24,6 +24,7 @@ export function AdminActions({
   const [standardizeOpen, setStandardizeOpen] = useState(false);
   const [correctionOpen, setCorrectionOpen] = useState(false);
   const [standardizeError, setStandardizeError] = useState<string | null>(null);
+  const [correctionError, setCorrectionError] = useState<string | null>(null);
 
   const canStandardize = status === "SUBMITTED_TO_ADMIN" || status === "ADMIN_REVIEW";
   const canCorrect = status === "TREASURY_RETURNED" || status === "ADMIN_CORRECTION";
@@ -43,7 +44,12 @@ export function AdminActions({
   };
 
   const handleCorrection = async (formData: FormData) => {
-    await adminCreateCorrection(formData);
+    setCorrectionError(null);
+    const result = await adminCreateCorrection(formData);
+    if (!result.ok) {
+      setCorrectionError(result.message);
+      return;
+    }
     setCorrectionOpen(false);
   };
 
@@ -64,10 +70,13 @@ export function AdminActions({
       {canCorrect && (
         <button
           type="button"
-          onClick={() => setCorrectionOpen(true)}
+          onClick={() => {
+            setCorrectionError(null);
+            setCorrectionOpen(true);
+          }}
           className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600"
         >
-          Crear correccion
+          Crear corrección
         </button>
       )}
 
@@ -123,12 +132,16 @@ export function AdminActions({
 
       <Modal
         open={correctionOpen}
-        onClose={() => setCorrectionOpen(false)}
-        title="Correccion solicitada"
-        description="Genera una nueva version con lote y fecha corregidos."
+        onClose={() => {
+          setCorrectionOpen(false);
+          setCorrectionError(null);
+        }}
+        title="Corrección solicitada"
+        description="Genera una nueva versión con lote y fecha corregidos."
       >
         <form action={handleCorrection} className="space-y-4">
           <input type="hidden" name="requestId" value={requestId} />
+          <ActionFeedback message={correctionError} />
           <div className="grid gap-4 md:grid-cols-2">
             <label className="text-sm font-medium text-slate-700">
               Nuevo lote
@@ -149,7 +162,7 @@ export function AdminActions({
             </label>
           </div>
           <label className="text-sm font-medium text-slate-700">
-            Notas de correccion
+            Notas de corrección
             <textarea
               name="notes"
               rows={3}
@@ -157,7 +170,7 @@ export function AdminActions({
             />
           </label>
           <SubmitButton
-            label="Crear nueva version"
+            label="Crear nueva versión"
             pendingLabel="Guardando..."
             className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white"
           />

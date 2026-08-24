@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getDemoRole } from "@/lib/demo-auth";
 import { roleLabels, DemoRole } from "@/lib/roles";
 import { FlowCard } from "@/components/FlowCard";
+import { roleValueProposition } from "@/lib/demo-experience";
 
 type ModuleCard = {
   title: string;
@@ -14,7 +15,7 @@ const modulesByRole: Record<DemoRole, ModuleCard[]> = {
   JEFE_AREA: [
     {
       title: "Solicitudes",
-      description: "Crear borradores, cargar cuadrilla y enviar a administracion.",
+      description: "Crear solicitudes, cargar la cuadrilla y enviarlas a Administración.",
       href: "/solicitudes",
       tone: "sky",
     },
@@ -26,7 +27,7 @@ const modulesByRole: Record<DemoRole, ModuleCard[]> = {
     },
     {
       title: "Seguimiento",
-      description: "Estados, historico y exportaciones basicas.",
+      description: "Controlar estados, versiones y próximas acciones.",
       href: "/solicitudes",
       tone: "slate",
     },
@@ -34,13 +35,13 @@ const modulesByRole: Record<DemoRole, ModuleCard[]> = {
   COLABORADOR: [
     {
       title: "Cuenta corriente",
-      description: "Saldo y movimientos de viaticos personales.",
+      description: "Consultar el saldo y los movimientos de viáticos personales.",
       href: "/colaboradores",
       tone: "emerald",
     },
     {
       title: "Historial",
-      description: "Pagos, ajustes y detalle por periodo.",
+      description: "Revisar pagos, ajustes y detalle por período.",
       href: "/colaboradores",
       tone: "slate",
     },
@@ -48,27 +49,33 @@ const modulesByRole: Record<DemoRole, ModuleCard[]> = {
   ADMIN: [
     {
       title: "Bandeja",
-      description: "Validar, estandarizar y asignar lote/fecha.",
+      description: "Validar, estandarizar y asignar lote y fecha.",
       href: "/administracion",
       tone: "sky",
     },
     {
-      title: "Pagos y correcciones",
-      description: "Registrar pagos, ajustar lote y validar cierres.",
-      href: "/administracion?tab=pagos",
+      title: "Correcciones",
+      description: "Resolver devoluciones y preparar una nueva versión para firma.",
+      href: "/administracion",
       tone: "amber",
     },
     {
-      title: "Viatico diario",
-      description: "Cambios de monto y ajustes retroactivos.",
+      title: "Viático diario",
+      description: "Gestionar valores y ajustes retroactivos con trazabilidad.",
       href: "/administracion?tab=viaticos",
       tone: "emerald",
     },
   ],
   TESORERIA: [
     {
-      title: "Tesoreria",
-      description: "Descargar reportes de pagos y viaticos.",
+      title: "Bandeja de pagos",
+      description: "Registrar pagos o devolver solicitudes con observaciones.",
+      href: "/tesoreria",
+      tone: "emerald",
+    },
+    {
+      title: "Reportes operativos",
+      description: "Exportar solicitudes y pagos para control y conciliación.",
       href: "/reportes",
       tone: "slate",
     },
@@ -85,21 +92,21 @@ export default async function Home() {
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Demo operativo
+              Demo interactiva
             </p>
             <h2 className="text-3xl font-semibold text-slate-900">
               Panel principal
             </h2>
             <p className="mt-3 max-w-2xl text-sm text-slate-600">
-              Recorre el flujo completo de viaticos con datos reales en Neon.
-              Cambia el rol para mostrar la experiencia de cada perfil.
+              {roleValueProposition[role]} Cambiá el rol para recorrer el circuito
+              completo desde la perspectiva de cada perfil.
             </p>
             <div className="mt-5 flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
               <span className="rounded-full bg-amber-100 px-3 py-1 text-amber-700">
                 Trazabilidad completa
               </span>
               <span className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-700">
-                Persistencia real
+                Control por rol
               </span>
             </div>
           </div>
@@ -111,7 +118,7 @@ export default async function Home() {
               {roleLabels[role]}
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              Modulos filtrados para la presentacion.
+              Experiencia enfocada en sus tareas.
             </p>
           </div>
         </div>
@@ -136,7 +143,7 @@ export default async function Home() {
                       : "bg-slate-100 text-slate-600"
               }`}
             >
-              Modulo clave
+              Módulo clave
             </span>
             <h3 className="mt-3 text-lg font-semibold text-slate-900">
               {module.title}
@@ -146,7 +153,7 @@ export default async function Home() {
               href={module.href}
               className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition group-hover:border-slate-300 group-hover:text-slate-900"
             >
-              Ver modulo
+              Ver módulo
             </Link>
           </article>
         ))}

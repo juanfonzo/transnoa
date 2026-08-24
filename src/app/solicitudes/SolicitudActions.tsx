@@ -38,7 +38,7 @@ export function SolicitudActions({ requestId, status }: SolicitudActionsProps) {
           setError(null);
           setOpen(true);
         }}
-        className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600"
+        className="min-h-10 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600"
       >
         Firmar
       </button>
@@ -50,14 +50,14 @@ export function SolicitudActions({ requestId, status }: SolicitudActionsProps) {
           setError(null);
         }}
         title="Firma interna"
-        description="Confirma que la informacion esta correcta antes de firmar."
+        description="Confirmá que la información sea correcta antes de firmar."
       >
         <form action={handleSign} className="space-y-4">
           <input type="hidden" name="requestId" value={requestId} />
           <ActionFeedback message={error} />
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
             Al firmar, la solicitud queda bloqueada para cambios y pasa a
-            tesoreria.
+            Tesorería.
           </div>
           <SubmitButton
             label="Firmar solicitud"

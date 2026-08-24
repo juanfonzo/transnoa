@@ -6,11 +6,12 @@ import { formatCurrency, formatDate, formatDateOnly } from "@/lib/format";
 import { getRequestStatusLabel, getStatusTone, getToneClasses } from "@/lib/status";
 import { AdminActions } from "@/app/administracion/AdminActions";
 import { AdminRateModal } from "@/app/administracion/AdminRateModal";
-import { AdminPaymentActions } from "@/app/administracion/AdminPaymentActions";
 import { RenditionBulkForm } from "@/app/administracion/RenditionBulkForm";
 import { applyRetroactiveBatch } from "@/app/actions/rates";
 import { SubmitButton } from "@/components/SubmitButton";
 import { StatusPill } from "@/components/StatusPill";
+import { RoleAccessNotice } from "@/components/RoleAccessNotice";
+import { getDemoRole } from "@/lib/demo-auth";
 
 const adminQueues = [
   {
@@ -20,35 +21,36 @@ const adminQueues = [
   },
   {
     status: "ADMIN_REVIEW",
-    title: "En revision",
-    description: "Administracion esta estandarizando datos.",
+    title: "En revisión",
+    description: "Administración está estandarizando los datos.",
   },
   {
     status: "PENDING_SIGNATURE",
     title: "Pendiente de firma",
-    description: "Listas para que el jefe firme la version final.",
+    description: "Listas para que el jefe firme la versión final.",
   },
   {
     status: "TREASURY_RETURNED",
-    title: "Devueltas por tesoreria",
+    title: "Devueltas por Tesorería",
     description: "Requieren cambios de lote o fecha.",
   },
   {
     status: "ADMIN_CORRECTION",
-    title: "En correccion",
+    title: "En corrección",
     description: "Versiones en ajuste antes de reenviar.",
   },
 ] as const;
 
 const tabs = [
   { id: "solicitudes", label: "Solicitudes" },
-  { id: "viaticos", label: "Viaticos y retroactivos" },
+  { id: "viaticos", label: "Viáticos y retroactivos" },
   { id: "rendiciones", label: "Rendiciones" },
-  { id: "pagos", label: "Pagos y correcciones" },
-  { id: "reporte", label: "Tesoreria" },
-] as const;
+] as const satisfies ReadonlyArray<{ id: TabKey; label: string }>;
 
-type TabKey = (typeof tabs)[number]["id"];
+type TabKey =
+  | "solicitudes"
+  | "viaticos"
+  | "rendiciones";
 
 type SearchParams = {
   tab?: string;
@@ -68,6 +70,11 @@ function parseDateRange(value: string) {
 }
 
 export default async function AdministracionPage({ searchParams }: PageProps) {
+  const role = await getDemoRole();
+  if (role !== "ADMIN") {
+    return <RoleAccessNotice currentRole={role} allowedRoles={["ADMIN"]} />;
+  }
+
   const resolvedSearchParams = await searchParams;
   const rawTab =
     typeof resolvedSearchParams?.tab === "string"
@@ -99,18 +106,14 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
   const showSolicitudes = activeTab === "solicitudes";
   const showViaticos = activeTab === "viaticos";
   const showRendiciones = activeTab === "rendiciones";
-  const showPagos = activeTab === "pagos";
-  const showTesoreria = activeTab === "reporte";
 
   const [
     adminRequests,
     latestRate,
     latestBatch,
     balanceWorkers,
-    paymentRequests,
     renditionVersions,
     renditionWorkers,
-    tesoreriaVersions,
   ] = await Promise.all([
     showSolicitudes
       ? prisma.viaticRequest.findMany({
@@ -142,29 +145,6 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
       ? prisma.worker.findMany({
           orderBy: { name: "asc" },
           include: { balanceEntries: true },
-        })
-      : Promise.resolve([]),
-    showPagos
-      ? prisma.viaticRequest.findMany({
-          where: {
-            status: {
-              in: [
-                "READY_FOR_PAYMENT",
-                "TREASURY_RETURNED",
-                "ADMIN_CORRECTION",
-                "PAID",
-              ],
-            },
-          },
-          orderBy: { createdAt: "desc" },
-          include: {
-            area: true,
-            versions: {
-              orderBy: { versionNumber: "desc" },
-              take: 1,
-              include: { payment: true },
-            },
-          },
         })
       : Promise.resolve([]),
     showRendiciones
@@ -205,26 +185,6 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
     showRendiciones
       ? prisma.worker.findMany({ orderBy: { name: "asc" } })
       : Promise.resolve([]),
-    showTesoreria
-      ? prisma.viaticRequestVersion.findMany({
-          where: {
-            request: { status: "PAID" },
-            payment: { isNot: null },
-          },
-          include: {
-            payment: true,
-            workers: {
-              include: {
-                worker: true,
-                rendition: {
-                  include: { legs: { orderBy: { orderIndex: "asc" } } },
-                },
-              },
-            },
-          },
-          orderBy: { createdAt: "desc" },
-        })
-      : Promise.resolve([]),
   ]);
 
   const statusCounts = adminRequests.reduce<Record<string, number>>(
@@ -253,42 +213,15 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
     return true;
   });
 
-  const tesoreriaRows = tesoreriaVersions
-    .map((version) => {
-      const workers = version.workers ?? [];
-      const isComplete =
-        workers.length > 0 &&
-        workers.every(
-          (entry) => entry.rendition && entry.rendition.legs.length > 0
-        );
-      if (!isComplete) {
-        return null;
-      }
-      const totalAmount = workers.reduce(
-        (sum, entry) => sum + Number(entry.netAmount),
-        0
-      );
-      return {
-        id: version.id,
-        lote: version.loteNumber ?? "Sin lote",
-        paidAt: version.payment?.paidAt ?? null,
-        totalAmount,
-        workers: workers
-          .map((entry) => entry.worker.name)
-          .sort((a, b) => a.localeCompare(b)),
-      };
-    })
-    .filter((row): row is NonNullable<typeof row> => Boolean(row));
-
   return (
     <div className="space-y-6">
       <header className="space-y-3">
         <div>
           <h2 className="text-3xl font-semibold text-slate-900">
-            Administracion
+            Administración
           </h2>
           <p className="mt-1 text-sm text-slate-600">
-            Validacion, estandarizacion y correcciones pendientes.
+            Validación, estandarización y correcciones pendientes.
           </p>
         </div>
         <nav className="flex flex-wrap gap-2">
@@ -313,7 +246,7 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
       </header>
       {activeTab === "solicitudes" && (
         <section className="grid gap-4">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
             {adminQueues.map((queue) => {
               const tone = getStatusTone(queue.status as RequestStatus);
               return (
@@ -327,11 +260,11 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                   <p className="mt-2 text-xl font-semibold text-slate-900">
                     {statusCounts[queue.status] ?? 0}
                   </p>
-                  <p className="mt-1 text-sm text-slate-600">
+                  <p className="mt-1 hidden text-sm text-slate-600 sm:block">
                     {queue.description}
                   </p>
                   <span
-                    className={`mt-3 inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${getToneClasses(
+                    className={`mt-3 hidden rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide sm:inline-flex ${getToneClasses(
                       tone
                     )}`}
                   >
@@ -344,7 +277,7 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
 
           {adminRequests.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-              No hay solicitudes pendientes para administracion.
+              No hay solicitudes pendientes para Administración.
             </div>
           ) : (
             <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -352,8 +285,8 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                 <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   <tr>
                     <th className="px-4 py-3">Solicitud</th>
-                    <th className="px-4 py-3">Area</th>
-                    <th className="px-4 py-3">Version</th>
+                    <th className="px-4 py-3">Área</th>
+                    <th className="px-4 py-3">Versión</th>
                     <th className="px-4 py-3">Lote</th>
                     <th className="px-4 py-3">Estado</th>
                     <th className="px-4 py-3">Acciones</th>
@@ -383,12 +316,20 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                           <StatusPill status={request.status} />
                         </td>
                         <td className="px-4 py-3">
-                          <AdminActions
-                            requestId={request.id}
-                            status={request.status}
-                            loteNumber={version?.loteNumber}
-                            plannedPaymentDate={version?.plannedPaymentDate}
-                          />
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Link
+                              href={`/solicitudes/${request.id}`}
+                              className="inline-flex min-h-10 items-center rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+                            >
+                              Ver detalle
+                            </Link>
+                            <AdminActions
+                              requestId={request.id}
+                              status={request.status}
+                              loteNumber={version?.loteNumber}
+                              plannedPaymentDate={version?.plannedPaymentDate}
+                            />
+                          </div>
                         </td>
                       </tr>
                     );
@@ -406,7 +347,7 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="space-y-1">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Viatico diario
+                  Viático diario
                 </p>
                 <p className="text-2xl font-semibold text-slate-900">
                   {formatCurrency(Number(latestRate?.amount ?? 0))}
@@ -432,7 +373,7 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <p className="text-sm font-semibold text-slate-900">
-                        Periodo {latestBatch.periodMonth}
+                        Período {latestBatch.periodMonth}
                       </p>
                       <p className="text-xs text-slate-500">
                         Desde {formatDateOnly(latestBatch.effectiveFromDate)}
@@ -483,7 +424,7 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                                 Number(item.daysAffected) % 1 === 0 ? 0 : 1,
                               maximumFractionDigits: 1,
                             })}{" "}
-                            dias x{" "}
+                            días x{" "}
                             {formatCurrency(Number(item.amountDiff))}
                           </span>
                         </div>
@@ -493,7 +434,7 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                 </div>
               ) : (
                 <p className="mt-3 text-sm text-slate-500">
-                  Aun no se generaron ajustes retroactivos.
+                  Aún no se generaron ajustes retroactivos.
                 </p>
               )}
             </div>
@@ -643,7 +584,7 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
               </select>
             </label>
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Estado rendicion
+              Estado rendición
               <select
                 name="estado"
                 defaultValue={filterEstado}
@@ -666,7 +607,7 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
 
           {renditionFilteredVersions.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-              No hay viaticos pagados para rendir con esos filtros.
+              No hay viáticos pagados para rendir con esos filtros.
             </div>
           ) : (
             <div className="space-y-3">
@@ -727,7 +668,7 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                           </span>
                           {isComplete && (
                             <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
-                              Enviado a tesoreria
+                              Enviado a Tesorería
                             </span>
                           )}
                         </div>
@@ -749,154 +690,6 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                   </details>
                 );
               })}
-            </div>
-          )}
-        </section>
-      )}
-      {activeTab === "pagos" && (
-        <section className="space-y-4">
-          {paymentRequests.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-              No hay solicitudes con pagos o correcciones pendientes.
-            </div>
-          ) : (
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  <tr>
-                    <th className="px-4 py-3">Solicitud</th>
-                    <th className="px-4 py-3">Area</th>
-                    <th className="px-4 py-3">Lote</th>
-                    <th className="px-4 py-3">Fecha prevista</th>
-                    <th className="px-4 py-3">Estado</th>
-                    <th className="px-4 py-3">Pago</th>
-                    <th className="px-4 py-3">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {paymentRequests.map((request) => {
-                    const version = request.versions[0];
-                    const paidAt = version?.payment?.paidAt;
-
-                    return (
-                      <tr key={request.id} className="hover:bg-slate-50">
-                        <td className="px-4 py-3">
-                          <div className="font-semibold text-slate-900">
-                            {request.requestNumber}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            {formatDate(request.createdAt)}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">{request.area.name}</td>
-                        <td className="px-4 py-3">
-                          {version?.loteNumber ?? "-"}
-                        </td>
-                        <td className="px-4 py-3">
-                          {formatDateOnly(version?.plannedPaymentDate)}
-                        </td>
-                        <td className="px-4 py-3">
-                          <StatusPill status={request.status} />
-                        </td>
-                        <td className="px-4 py-3">
-                          {paidAt ? (
-                            <span className="text-sm font-semibold text-slate-900">
-                              {formatDateOnly(paidAt)}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-slate-500">
-                              Pendiente
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <AdminPaymentActions
-                            requestId={request.id}
-                            status={request.status}
-                            loteNumber={version?.loteNumber}
-                            plannedPaymentDate={version?.plannedPaymentDate}
-                            paidAt={paidAt ?? null}
-                            paymentReference={version?.payment?.paymentReference}
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-      )}
-
-      {activeTab === "reporte" && (
-        <section className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h3 className="text-lg font-semibold text-slate-900">
-                Viaticos pagados
-              </h3>
-              <p className="mt-2 text-sm text-slate-600">
-                Exporta pagos con colaborador, lote, monto y rendicion asociada.
-              </p>
-              <a
-                href="/reportes/export/viaticos-pagados"
-                className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600"
-              >
-                Descargar Excel
-              </a>
-            </div>
-          </div>
-
-          {tesoreriaRows.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-              No hay rendiciones enviadas a tesoreria.
-            </div>
-          ) : (
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  <tr>
-                    <th className="px-4 py-3">Nro lote</th>
-                    <th className="px-4 py-3">Fecha pago</th>
-                    <th className="px-4 py-3">Monto</th>
-                    <th className="px-4 py-3">Colaboradores</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {tesoreriaRows.map((row) => (
-                    <tr key={row.id} className="hover:bg-slate-50">
-                      <td className="px-4 py-3 font-semibold text-slate-900">
-                        {row.lote}
-                      </td>
-                      <td className="px-4 py-3">
-                        {row.paidAt ? (
-                          <span className="text-sm font-semibold text-slate-900">
-                            {formatDateOnly(row.paidAt)}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-slate-500">-</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 font-semibold text-slate-900">
-                        {formatCurrency(row.totalAmount)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-2">
-                          {row.workers.map((worker) => (
-                            <span
-                              key={worker}
-                              className="rounded-full border border-slate-200 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600"
-                            >
-                              {worker}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
           )}
         </section>

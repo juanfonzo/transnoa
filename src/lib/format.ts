@@ -15,6 +15,17 @@ export function formatDate(value?: Date | null) {
   return new Intl.DateTimeFormat("es-AR").format(value);
 }
 
+export function formatDateTime(value?: Date | null) {
+  if (!value) {
+    return "-";
+  }
+  return new Intl.DateTimeFormat("es-AR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "America/Argentina/Buenos_Aires",
+  }).format(value);
+}
+
 export function formatDateInput(value?: Date | null) {
   if (!value) {
     return "";
