@@ -5,23 +5,22 @@ export type DemoNavItem = {
   label: string;
 };
 
+export const landingByRole: Record<DemoRole, string> = {
+  JEFE_AREA: "/solicitudes",
+  COLABORADOR: "/colaboradores",
+  ADMIN: "/administracion",
+  TESORERIA: "/tesoreria",
+};
+
 export const navigationByRole: Record<DemoRole, DemoNavItem[]> = {
-  JEFE_AREA: [
-    { href: "/", label: "Panel" },
-    { href: "/solicitudes", label: "Solicitudes" },
-  ],
-  COLABORADOR: [
-    { href: "/", label: "Panel" },
-    { href: "/colaboradores", label: "Mi cuenta" },
-  ],
+  JEFE_AREA: [{ href: "/solicitudes", label: "Solicitudes" }],
+  COLABORADOR: [{ href: "/colaboradores", label: "Mi cuenta" }],
   ADMIN: [
-    { href: "/", label: "Panel" },
     { href: "/administracion", label: "Administración" },
     { href: "/colaboradores", label: "Colaboradores" },
     { href: "/reportes", label: "Reportes" },
   ],
   TESORERIA: [
-    { href: "/", label: "Panel" },
     { href: "/tesoreria", label: "Tesorería" },
     { href: "/reportes", label: "Reportes" },
   ],

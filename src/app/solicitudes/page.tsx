@@ -46,7 +46,12 @@ export default async function SolicitudesPage() {
     prisma.area.findMany({ orderBy: { name: "asc" } }),
     prisma.worker.findMany({
       orderBy: { name: "asc" },
-      select: { id: true, name: true, legajo: true },
+      select: {
+        id: true,
+        name: true,
+        legajo: true,
+        balanceEntries: { select: { type: true, amount: true } },
+      },
     }),
     prisma.viaticRateHistory.findFirst({ orderBy: { effectiveFrom: "desc" } }),
   ]);
@@ -80,6 +85,15 @@ export default async function SolicitudesPage() {
     return acc;
   }, {});
   const dailyAmount = Number(latestRate?.amount ?? 25000);
+  const workerOptions = workers.map((worker) => ({
+    id: worker.id,
+    name: worker.name,
+    legajo: worker.legajo,
+    balance: worker.balanceEntries.reduce((total, entry) => {
+      const amount = Number(entry.amount);
+      return entry.type === "CREDIT" ? total + amount : total - amount;
+    }, 0),
+  }));
 
   return (
     <div className="space-y-6">
@@ -93,7 +107,11 @@ export default async function SolicitudesPage() {
             Creá, seguí y firmá las solicitudes de tu equipo.
           </p>
         </div>
-        <SolicitudWizard areas={areas} workers={workers} dailyAmount={dailyAmount} />
+        <SolicitudWizard
+          areas={areas}
+          workers={workerOptions}
+          dailyAmount={dailyAmount}
+        />
       </header>
 
       <KpiStrip

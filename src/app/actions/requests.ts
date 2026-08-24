@@ -25,6 +25,11 @@ import {
   validateVersionReadiness,
   type WorkflowIssue,
 } from "@/lib/workflow-rules";
+import {
+  calculateBalanceApplication,
+  getBalanceSettlementType,
+} from "@/lib/viatic-balance";
+import { getNextRequestNumber } from "@/lib/request-number";
 
 const DEFAULT_AREA = "Santiago del Estero";
 
@@ -32,6 +37,18 @@ type DayPlan = Record<
   string,
   { workerIds: string[]; concepts: string[] }
 >;
+
+type RequestWorkerAmount = {
+  workerId: string;
+  daysCount: number | Prisma.Decimal;
+  dailyAmount: Prisma.Decimal;
+  grossAmount: Prisma.Decimal;
+};
+
+type BalanceApplicationAudit = {
+  workerId: string;
+  appliedAmount: string;
+};
 
 function addDays(date: Date, days: number) {
   return addDateOnlyDays(date, days);
@@ -103,19 +120,121 @@ async function getActor(role: UserRole) {
   return prisma.user.findFirst({ where: { role: "ADMIN" } });
 }
 
-async function generateRequestNumber() {
-  const latest = await prisma.viaticRequest.findFirst({
-    orderBy: { createdAt: "desc" },
+async function generateRequestNumber(
+  client: Pick<Prisma.TransactionClient, "viaticRequest"> = prisma,
+) {
+  const requests = await client.viaticRequest.findMany({
+    where: { requestNumber: { startsWith: "REQ-" } },
     select: { requestNumber: true },
   });
 
-  const match = latest?.requestNumber.match(/REQ-(\d+)/);
-  if (match) {
-    const next = Number(match[1]) + 1;
-    return `REQ-${String(next).padStart(4, "0")}`;
+  return getNextRequestNumber(requests.map((request) => request.requestNumber));
+}
+
+async function runSerializableTransaction<T>(
+  operation: (tx: Prisma.TransactionClient) => Promise<T>,
+) {
+  const maxAttempts = 3;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await prisma.$transaction(operation, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      });
+    } catch (error) {
+      const canRetry =
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        (error.code === "P2034" || error.code === "P2002") &&
+        attempt < maxAttempts;
+      if (!canRetry) throw error;
+    }
   }
 
-  return `REQ-${Date.now()}`;
+  throw new Error("No se pudo completar la transacción serializable.");
+}
+
+async function createRequestWorkersWithBalance({
+  tx,
+  versionId,
+  requestNumber,
+  actorId,
+  workers,
+}: {
+  tx: Prisma.TransactionClient;
+  versionId: string;
+  requestNumber: string;
+  actorId: string;
+  workers: RequestWorkerAmount[];
+}): Promise<BalanceApplicationAudit[]> {
+  if (workers.length === 0) return [];
+
+  const entries = await tx.workerViaticBalanceLedger.findMany({
+    where: { workerId: { in: workers.map((worker) => worker.workerId) } },
+    select: { workerId: true, type: true, amount: true },
+  });
+  const balances = new Map<string, Prisma.Decimal>();
+
+  entries.forEach((entry) => {
+    const current = balances.get(entry.workerId) ?? new Prisma.Decimal(0);
+    balances.set(
+      entry.workerId,
+      entry.type === "CREDIT"
+        ? current.add(entry.amount)
+        : current.sub(entry.amount),
+    );
+  });
+
+  const workersWithBalance = workers.map((worker) => {
+    const currentBalance = balances.get(worker.workerId) ?? new Prisma.Decimal(0);
+    const application = calculateBalanceApplication(
+      worker.grossAmount,
+      currentBalance,
+    );
+    return { ...worker, ...application };
+  });
+
+  await tx.viaticRequestWorker.createMany({
+    data: workersWithBalance.map((worker) => ({
+      requestVersionId: versionId,
+      workerId: worker.workerId,
+      daysCount: worker.daysCount,
+      dailyAmount: worker.dailyAmount,
+      grossAmount: worker.grossAmount,
+      balanceAppliedAmount: worker.appliedAmount,
+      netAmount: worker.netAmount,
+    })),
+  });
+
+  const settlements = workersWithBalance.flatMap((worker) => {
+    const type = getBalanceSettlementType(worker.appliedAmount);
+    if (!type) return [];
+
+    return [
+      {
+        workerId: worker.workerId,
+        type,
+        amount: worker.appliedAmount.abs(),
+        reason: `Saldo aplicado automáticamente en ${requestNumber}`,
+        relatedRequestVersionId: versionId,
+        createdByUserId: actorId,
+      },
+    ];
+  });
+
+  if (settlements.length > 0) {
+    await tx.workerViaticBalanceLedger.createMany({ data: settlements });
+  }
+
+  return workersWithBalance.flatMap((worker) =>
+    worker.appliedAmount.isZero()
+      ? []
+      : [
+          {
+            workerId: worker.workerId,
+            appliedAmount: worker.appliedAmount.toFixed(2),
+          },
+        ],
+  );
 }
 
 export async function createDemoRequest() {
@@ -126,73 +245,73 @@ export async function createDemoRequest() {
   }
 
   const areaId = actor.areaId ?? (await ensureAreaId());
-  const requestNumber = await generateRequestNumber();
   const latestRate = await prisma.viaticRateHistory.findFirst({
     orderBy: { effectiveFrom: "desc" },
+  });
+  const workers = await prisma.worker.findMany({
+    take: 3,
+    orderBy: { name: "asc" },
   });
 
   const dailyAmount = latestRate?.amount ?? new Prisma.Decimal(25000);
   const calendarDays = 3;
   const startDate = addDays(new Date(), 0);
   const endDate = addDays(startDate, calendarDays - 1);
-
-  const request = await prisma.viaticRequest.create({
-    data: {
-      requestNumber,
-      areaId,
-      createdByUserId: actor.id,
-      status: "SUBMITTED_TO_ADMIN",
-      currentVersionNumber: 1,
-    },
-  });
-
-  const version = await prisma.viaticRequestVersion.create({
-    data: {
-      requestId: request.id,
-      versionNumber: 1,
-      startDate,
-      endDate,
-      createdByUserId: actor.id,
-      notes: "Solicitud creada desde demo",
-    },
-  });
-
-  const workers = await prisma.worker.findMany({
-    take: 3,
-    orderBy: { name: "asc" },
-  });
-
   const grossAmount = dailyAmount.mul(calendarDays);
-  const workerData = workers.map((worker) => ({
-    requestVersionId: version.id,
-    workerId: worker.id,
-    daysCount: calendarDays,
-    dailyAmount,
-    grossAmount,
-    balanceAppliedAmount: new Prisma.Decimal(0),
-    netAmount: grossAmount,
-  }));
 
-  if (workerData.length > 0) {
-    await prisma.viaticRequestWorker.createMany({ data: workerData });
-  }
+  await runSerializableTransaction(async (tx) => {
+    const requestNumber = await generateRequestNumber(tx);
+    const request = await tx.viaticRequest.create({
+      data: {
+        requestNumber,
+        areaId,
+        createdByUserId: actor.id,
+        status: "SUBMITTED_TO_ADMIN",
+        currentVersionNumber: 1,
+      },
+    });
 
-  const concepts = Array.from({ length: calendarDays }, (_, index) => ({
-    requestVersionId: version.id,
-    date: addDays(startDate, index),
-    conceptText: index === 0 ? "Montaje" : "Trabajo operativo",
-  }));
+    const version = await tx.viaticRequestVersion.create({
+      data: {
+        requestId: request.id,
+        versionNumber: 1,
+        startDate,
+        endDate,
+        createdByUserId: actor.id,
+        notes: "Solicitud creada desde demo",
+      },
+    });
 
-  await prisma.viaticRequestDayConcept.createMany({ data: concepts });
+    const balanceApplications = await createRequestWorkersWithBalance({
+      tx,
+      versionId: version.id,
+      requestNumber,
+      actorId: actor.id,
+      workers: workers.map((worker) => ({
+        workerId: worker.id,
+        daysCount: calendarDays,
+        dailyAmount,
+        grossAmount,
+      })),
+    });
 
-  await prisma.auditLog.create({
-    data: {
-      entity: "viatic_request",
-      entityId: request.id,
-      action: "create_demo_request",
-      afterJson: { status: request.status },
-      userId: actor.id,
-    },
+    const concepts = Array.from({ length: calendarDays }, (_, index) => ({
+      requestVersionId: version.id,
+      date: addDays(startDate, index),
+      conceptText: index === 0 ? "Montaje" : "Trabajo operativo",
+    }));
+
+    await tx.viaticRequestDayConcept.createMany({ data: concepts });
+
+    await tx.auditLog.create({
+      data: {
+        entity: "viatic_request",
+        entityId: request.id,
+        action: "create_demo_request",
+        afterJson: { status: request.status, balanceApplications },
+        userId: actor.id,
+      },
+    });
   });
 
   revalidatePath("/");
@@ -333,8 +452,6 @@ export async function createRequestWizard(
         daysCount: viaticDays,
         dailyAmount,
         grossAmount,
-        balanceAppliedAmount: new Prisma.Decimal(0),
-        netAmount: grossAmount,
       };
     })
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
@@ -347,67 +464,84 @@ export async function createRequestWizard(
     );
   }
 
-  const requestNumber = await generateRequestNumber();
-  await prisma.$transaction(async (tx) => {
-    const request = await tx.viaticRequest.create({
-      data: {
-        requestNumber,
-        areaId,
-        createdByUserId: actor.id,
-        status: "SUBMITTED_TO_ADMIN",
-        currentVersionNumber: 1,
-      },
-    });
-
-    const version = await tx.viaticRequestVersion.create({
-      data: {
-        requestId: request.id,
-        versionNumber: 1,
-        startDate,
-        endDate,
-        createdByUserId: actor.id,
-        notes: "Solicitud cargada desde wizard",
-        payloadJson: {
-          crew: String(formData.get("crew") || ""),
-          location: String(formData.get("location") || ""),
-          dayPlan,
-          lastDayHalf,
+  let balanceApplications: BalanceApplicationAudit[];
+  try {
+    const result = await runSerializableTransaction(async (tx) => {
+      const requestNumber = await generateRequestNumber(tx);
+      const request = await tx.viaticRequest.create({
+        data: {
+          requestNumber,
+          areaId,
+          createdByUserId: actor.id,
+          status: "SUBMITTED_TO_ADMIN",
+          currentVersionNumber: 1,
         },
-      },
-    });
+      });
 
-    await tx.viaticRequestWorker.createMany({
-      data: workerData.map((worker) => ({
-        ...worker,
-        requestVersionId: version.id,
-      })),
-    });
+      const version = await tx.viaticRequestVersion.create({
+        data: {
+          requestId: request.id,
+          versionNumber: 1,
+          startDate,
+          endDate,
+          createdByUserId: actor.id,
+          notes: "Solicitud cargada desde wizard",
+          payloadJson: {
+            crew: String(formData.get("crew") || ""),
+            location: String(formData.get("location") || ""),
+            dayPlan,
+            lastDayHalf,
+          },
+        },
+      });
 
-    await tx.viaticRequestDayConcept.createMany({
-      data: expectedDateKeys.flatMap((date) =>
-        dayPlan[date].concepts.map((concept) => ({
-          requestVersionId: version.id,
-          date: parseDateOnly(date)!,
-          conceptText: concept,
-        }))
-      ),
-    });
+      const appliedBalances = await createRequestWorkersWithBalance({
+        tx,
+        versionId: version.id,
+        requestNumber,
+        actorId: actor.id,
+        workers: workerData,
+      });
 
-    await tx.auditLog.create({
-      data: {
-        entity: "viatic_request",
-        entityId: request.id,
-        action: "create_request_wizard",
-        afterJson: { status: request.status },
-        userId: actor.id,
-      },
+      await tx.viaticRequestDayConcept.createMany({
+        data: expectedDateKeys.flatMap((date) =>
+          dayPlan[date].concepts.map((concept) => ({
+            requestVersionId: version.id,
+            date: parseDateOnly(date)!,
+            conceptText: concept,
+          })),
+        ),
+      });
+
+      await tx.auditLog.create({
+        data: {
+          entity: "viatic_request",
+          entityId: request.id,
+          action: "create_request_wizard",
+          afterJson: { status: request.status, balanceApplications: appliedBalances },
+          userId: actor.id,
+        },
+      });
+
+      return { balanceApplications: appliedBalances };
     });
-  });
+    balanceApplications = result.balanceApplications;
+  } catch {
+    return actionError(
+      "INVALID_INPUT",
+      "No se pudo crear la solicitud. Revisá los datos e intentá nuevamente.",
+    );
+  }
 
   revalidatePath("/");
   revalidatePath("/solicitudes");
   revalidatePath("/administracion");
-  return actionSuccess("La solicitud fue enviada a administración.");
+  revalidatePath("/colaboradores");
+  return actionSuccess(
+    balanceApplications.length > 0
+      ? `La solicitud fue enviada a administración con saldo aplicado automáticamente a ${balanceApplications.length} colaborador${balanceApplications.length === 1 ? "" : "es"}.`
+      : "La solicitud fue enviada a administración.",
+  );
 }
 
 export async function adminStandardize(

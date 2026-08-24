@@ -56,6 +56,7 @@ model User {
   signatureUrl     String?
   signaturePinHash String?
   active           Boolean  @default(true)
+  notificationsSeenAt DateTime?
   createdAt        DateTime @default(now())
 
   area              Area?                       @relation(fields: [areaId], references: [id])

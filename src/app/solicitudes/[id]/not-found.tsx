@@ -16,7 +16,7 @@ export default function RequestDetailNotFound() {
         href="/"
         className="mt-5 inline-flex min-h-11 items-center rounded-full bg-slate-900 px-5 py-2 text-xs font-semibold uppercase tracking-wide text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
       >
-        Volver al panel
+        Volver a mi módulo
       </Link>
     </section>
   );

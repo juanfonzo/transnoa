@@ -16,7 +16,7 @@
     "kit:surfaces": "node scripts/ai-dev-kit/surfaces.mjs",
     "kit:ui-check": "node scripts/ai-dev-kit/ui-check.mjs",
     "kit:ui-check:strict": "node scripts/ai-dev-kit/ui-check.mjs --strict",
-    "test:workflow": "node --test scripts/tests/workflow-rules.test.mjs scripts/tests/date-only.test.mjs scripts/tests/request-timeline.test.mjs",
+    "test:workflow": "node --test scripts/tests/workflow-rules.test.mjs scripts/tests/date-only.test.mjs scripts/tests/request-timeline.test.mjs scripts/tests/viatic-balance.test.mjs scripts/tests/request-number.test.mjs scripts/tests/notification-rules.test.mjs scripts/tests/report-filters.test.mjs",
     "postinstall": "prisma generate",
     "hooks:install": "node scripts/install-githooks.mjs",
     "prepare": "npm run hooks:install",

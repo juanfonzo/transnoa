@@ -42,6 +42,11 @@ function formatDays(value: unknown) {
   });
 }
 
+function formatAppliedBalance(value: unknown) {
+  const amount = Number(value);
+  return `${amount > 0 ? "+" : ""}${formatCurrency(amount)}`;
+}
+
 export default async function RequestDetailPage({ params }: PageProps) {
   const [{ id }, role] = await Promise.all([params, getDemoRole()]);
   const where: Prisma.ViaticRequestWhereInput = { id };
@@ -328,6 +333,26 @@ export default async function RequestDetailPage({ params }: PageProps) {
                           <dd className="font-medium text-slate-800">{formatDays(entry.daysCount)}</dd>
                         </div>
                         <div>
+                          <dt className="text-xs text-slate-500">Bruto</dt>
+                          <dd className="font-medium text-slate-800">
+                            {formatCurrency(Number(entry.grossAmount))}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-slate-500">Saldo aplicado</dt>
+                          <dd
+                            className={`font-medium ${
+                              Number(entry.balanceAppliedAmount) < 0
+                                ? "text-amber-700"
+                                : Number(entry.balanceAppliedAmount) > 0
+                                  ? "text-emerald-700"
+                                  : "text-slate-800"
+                            }`}
+                          >
+                            {formatAppliedBalance(entry.balanceAppliedAmount)}
+                          </dd>
+                        </div>
+                        <div>
                           <dt className="text-xs text-slate-500">Rendición</dt>
                           <dd className="font-medium text-slate-800">
                             {entry.rendition?.legs.length ? "Completa" : "Pendiente"}
@@ -338,12 +363,14 @@ export default async function RequestDetailPage({ params }: PageProps) {
                   ))}
                 </div>
                 <div className="mt-5 hidden overflow-x-auto border-y border-slate-200 md:block">
-                  <table className="w-full min-w-[680px] text-left text-sm">
+                  <table className="w-full min-w-[820px] text-left text-sm">
                     <thead className="border-b border-slate-200 bg-slate-50/60 text-xs font-semibold uppercase tracking-wide text-slate-500">
                       <tr>
                         <th className="px-4 py-3">Colaborador</th>
                         <th className="px-4 py-3 text-right">Días</th>
                         <th className="px-4 py-3 text-right">Diario</th>
+                        <th className="px-4 py-3 text-right">Bruto</th>
+                        <th className="px-4 py-3 text-right">Saldo aplicado</th>
                         <th className="px-4 py-3 text-right">Neto</th>
                         <th className="px-4 py-3">Rendición</th>
                       </tr>
@@ -357,6 +384,18 @@ export default async function RequestDetailPage({ params }: PageProps) {
                           </td>
                           <td className="px-4 py-3 text-right">{formatDays(entry.daysCount)}</td>
                           <td className="px-4 py-3 text-right">{formatCurrency(Number(entry.dailyAmount))}</td>
+                          <td className="px-4 py-3 text-right">{formatCurrency(Number(entry.grossAmount))}</td>
+                          <td
+                            className={`px-4 py-3 text-right font-medium ${
+                              Number(entry.balanceAppliedAmount) < 0
+                                ? "text-amber-700"
+                                : Number(entry.balanceAppliedAmount) > 0
+                                  ? "text-emerald-700"
+                                  : "text-slate-600"
+                            }`}
+                          >
+                            {formatAppliedBalance(entry.balanceAppliedAmount)}
+                          </td>
                           <td className="px-4 py-3 text-right font-semibold text-slate-900">
                             {formatCurrency(Number(entry.netAmount))}
                           </td>

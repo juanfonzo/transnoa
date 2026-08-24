@@ -26,11 +26,12 @@ Presentar el circuito completo de viáticos con una responsabilidad clara por pe
 
 ## Jerarquía
 
-- Panel: sólo KPIs reales y útiles para el rol activo; sin explicación del flujo ni accesos duplicados.
+- Inicio: redirige al módulo operativo principal del rol, donde se muestran sus KPIs útiles.
 - Información primaria: estado, número de solicitud/lote, fechas, importe y próxima acción.
 - Acción primaria: la tarea pendiente propia del rol.
 - Acciones secundarias: seguimiento, edición permitida, detalle y exportación.
 - La navegación sólo muestra los módulos útiles al rol activo.
+- La campana global muestra tareas propias del rol y novedades informativas sin duplicar el estado del circuito.
 
 ## Componentes y patrones reutilizados
 
@@ -46,7 +47,7 @@ Presentar el circuito completo de viáticos con una responsabilidad clara por pe
 - Error: feedback inline de Server Actions sin cerrar el modal.
 - Éxito: cierre del modal, revalidación y cambio observable de estado.
 - Disabled: acción visible con causa cuando el estado no permite operar.
-- Permiso insuficiente: mensaje explícito y retorno al Panel; sin renderizar acciones de otro rol.
+- Permiso insuficiente: mensaje explícito y retorno al módulo principal; sin renderizar acciones de otro rol.
 
 ## Responsive
 

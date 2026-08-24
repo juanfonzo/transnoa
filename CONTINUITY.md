@@ -4,6 +4,9 @@
   - Elevar la demo a una experiencia comercial excelente que comunique valor, madurez y beneficios concretos para cada rol de Transnoa.
   - Mantener `vercel-build` no mutante para que la POC pueda desplegarse sólo con la conexión Neon de runtime.
   - Rediseñar la interfaz para reemplazar cards métricas por KPIs compactos y mostrar listados abiertos con mayor densidad operativa.
+  - Aplicar automáticamente la cuenta corriente al crear solicitudes, con precisión, consumo único y trazabilidad.
+  - Alertar a cada perfil demo sobre tareas pendientes y novedades mediante una campana simple con lectura persistente.
+  - Consultar y exportar saldos, correcciones y retroactivos con filtros y paginación server-side.
 - Constraints/Assumptions:
   - Seguir `AGENTS.md`, mantener UTF-8 y cambios pequeños sin dependencias nuevas.
   - `F:\Repositorios\gesuite` es referencia estrictamente de sólo lectura.
@@ -20,10 +23,13 @@
   - Vercel no ejecuta migraciones, `db push` ni seed; la Neon compartida de demo se sincroniza manualmente y antes del deploy cuando sea necesario.
   - El wrapper de migraciones se conserva para operaciones manuales futuras: prioriza `DIRECT_URL`, acepta `DATABASE_URL_UNPOOLED` y nunca usa una URL pooled como fallback silencioso.
   - El rediseño preserva cards sólo para formularios, modales, estados excepcionales y acciones sensibles; KPIs y listados usan franjas y separadores sin sombra.
-  - El Panel queda reducido a KPIs reales por rol; no duplica explicación del flujo, selector de rol ni accesos operativos.
+  - No existe una sección Panel separada: `/` y el selector demo redirigen al módulo operativo principal de cada rol, donde viven sus KPIs.
   - La línea de tiempo es la única síntesis visual de versionado/control en el detalle; se eliminan los paneles finales redundantes.
+  - El saldo se calcula como crédito menos débito; deuda descuenta, crédito suma y la deuda se limita para que el neto no sea negativo.
+  - La aplicación crea el movimiento inverso dentro de la misma transacción serializable; las correcciones copian el saldo aplicado sin consumirlo de nuevo.
+  - Las notificaciones se derivan de estados/eventos canónicos; sólo `User.notificationsSeenAt` se persiste y las tareas no se ocultan hasta resolverse.
 - State:
-  - Refinamiento de Panel, acciones y detalle implementado y verificado; listo para revisión del usuario.
+  - Reportes operativos implementados y verificados; listos para revisión del usuario.
 - Done:
   - Implementado el kit Dev IA adaptado: 14 skills, 6 agentes opcionales, políticas, routing, checks, hooks y CI.
   - Primer lote crítico implementado y aceptado con pruebas UI/DB (`REQ-0003`).
@@ -73,10 +79,23 @@
   - Eliminados del detalle los bloques finales `Historial documental` y `Correcciones y rendiciones`; evidencias y timeline permanecen intactos.
   - QA en 390/768/1440 px: cuatro Paneles, bandejas, detalle y modal de pago; consola final 0 errores/0 warnings.
   - Verificación del refinamiento: `npm run verify`, UI strict, Prisma validate y diff check pasan; se mantienen los 4 warnings React reservados para el lote posterior.
+  - Eliminada la navegación `Panel`; la raíz y el cambio de rol llevan a Solicitudes, Mi cuenta, Administración o Tesorería.
+  - Nuevas solicitudes aplican automáticamente saldo deudor o a favor, persisten bruto/saldo/neto y crean una compensación trazable sin migración Prisma.
+  - La creación usa aislamiento serializable, reintentos acotados y un correlativo basado en el mayor `REQ-*`; se corrigió la colisión que producía el orden por fecha de los escenarios demo.
+  - El wizard y el detalle muestran bruto, saldo aplicado y neto; éxito confirmado con `REQ-1008` y luego eliminado nominalmente antes de restaurar el seed.
+  - Base restaurada a `REQ-1001`–`REQ-1007`, saldo `1001=-7000` y `1002=9000`; `npm run build`, 21 pruebas de workflow, 7 de despliegue, UI strict, Prisma y encoding pasan.
+  - QA Playwright en 390/768/amplio: navegación sin Panel, saldos visibles y consola final 0 errores/0 warnings; se observó un `P1001` transitorio de Neon en una sesión descartada.
+  - Implementada campana global por usuario demo: acciones pendientes para Jefatura, Administración y Tesorería; pagos, devoluciones y movimientos informativos según el perfil.
+  - Agregado `User.notificationsSeenAt` como cambio nullable aditivo, aplicado a la Neon compartida autorizada mediante `db push`; precheck de una columna y diff posterior sin diferencias.
+  - Las novedades pueden marcarse como leídas y persisten tras recargar; las tareas permanecen en el contador mientras el estado operativo siga pendiente.
+  - QA Playwright de notificaciones en los cuatro roles y 390/768/1440 px: enlaces reales, Escape/foco, popover operable y consola 0 errores/0 warnings.
+  - Reemplazadas las descargas aisladas de `/reportes` por pestañas de Saldos, Correcciones y Retroactivos con KPIs reales, filtros en URL, paginación de 8 filas, vista responsive y estados vacíos diferenciados.
+  - Agregadas tres exportaciones `.xls` que respetan los filtros activos; las exportaciones históricas se conservan como opción secundaria y todos los handlers mantienen el control por rol.
+  - QA de reportes contra Neon en 390/768/1440 px: filtros, exportaciones 200, acceso negativo 403, página fuera de rango, build y consola 0 errores/0 warnings.
 - Now:
-  - Esperar revisión visual del Panel y la nueva jerarquía de acciones.
+  - Esperar revisión de la experiencia de reportes.
 - Next:
-  - Retomar el backlog funcional acordado, comenzando por la aplicación automática de cuenta corriente en nuevas solicitudes.
+  - Definir con el usuario el siguiente lote de mejoras de la demo.
 - Open questions (UNCONFIRMED if needed):
   - Ninguna para el redeploy actual; una etapa productiva requerirá ambientes separados y un pipeline explícito de migraciones.
 - Working set (files/ids/commands):
@@ -89,4 +108,7 @@
   - Datos demo: `prisma/seed.js` (`REQ-1001` a `REQ-1007`).
   - Detalle: `src/app/solicitudes/[id]/`, `src/lib/request-timeline.ts`, `docs/product/request-detail-experience.md`.
   - Rediseño compacto: `docs/product/dense-interface-redesign.md`, páginas por rol y componentes visuales compartidos.
+  - Cuenta corriente automática: `src/lib/viatic-balance.ts`, `src/lib/request-number.ts`, `src/app/actions/requests.ts`, wizard/detalle y `docs/product/automatic-balance-application.md`.
+  - Notificaciones: `src/lib/notifications.ts`, `src/lib/notification-rules.ts`, `src/components/NotificationBell.tsx`, `src/app/actions/notifications.ts`, schema/migración y `docs/product/notifications.md`.
+  - Reportes: `src/app/reportes/`, `src/lib/report-data.ts`, `src/lib/report-filters.ts` y `docs/product/operational-reports.md`.
   - Validación: `npm run verify`, `npm run kit:ui-check:strict`, `npm run prisma:validate`, `npx next build`, Playwright y `npm run db:seed`.

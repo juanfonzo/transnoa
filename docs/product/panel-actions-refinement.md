@@ -1,8 +1,8 @@
-# Contrato UI: Panel por rol y acciones operativas
+# Contrato UI: módulos por rol y acciones operativas
 
 ## Objetivo Operativo
 
-Reducir el Panel a información cuantitativa accionable y ordenar las acciones de cada bandeja para que la tarea principal se reconozca sin leer bloques explicativos.
+Integrar la información cuantitativa accionable en el módulo principal de cada rol y ordenar las acciones de cada bandeja para que la tarea principal se reconozca sin leer bloques explicativos.
 
 ## Usuario Y Tarea Principal
 
@@ -27,7 +27,7 @@ Reducir el Panel a información cuantitativa accionable y ordenar las acciones d
 
 ## Jerarquía
 
-- Panel: únicamente `KpiStrip`; sin hero, explicación del flujo, selector duplicado ni accesos descriptivos.
+- Inicio por rol: redirección al módulo operativo, con `KpiStrip` integrado y sin una sección `Panel` separada.
 - Acción primaria: operación pendiente del rol, primero y con fondo sólido.
 - Acción secundaria: `Ver detalle`, con borde neutro.
 - Acción excepcional: devolución de Tesorería, al final y con tono rose.
@@ -41,7 +41,7 @@ Reducir el Panel a información cuantitativa accionable y ordenar las acciones d
 ## Estados
 
 - loading/error: permanecen a cargo de App Router y las vistas existentes;
-- vacío: KPIs en cero o saldo neutro sin incorporar explicaciones al Panel;
+- vacío: KPIs en cero o saldo neutro sin incorporar explicaciones redundantes;
 - disabled/pending/éxito: permanecen dentro de los componentes de acción y modales actuales;
 - permiso insuficiente: no se modifica.
 
@@ -53,7 +53,7 @@ Reducir el Panel a información cuantitativa accionable y ordenar las acciones d
 
 ## Accesibilidad
 
-- Panel conserva un encabezado sólo para lectores de pantalla y `dl` para métricas;
+- cada `KpiStrip` conserva semántica `dl` y una etiqueta accesible;
 - botones y enlaces mantienen foco visible, texto explícito y targets cómodos;
 - el tono de devolución complementa, pero no reemplaza, el texto de la acción.
 
@@ -65,7 +65,7 @@ Reducir el Panel a información cuantitativa accionable y ordenar las acciones d
 
 ## Evidencia Requerida
 
-- Panel para los cuatro roles con datos reales;
+- módulo principal de los cuatro roles con datos reales;
 - Solicitudes, Administración y Tesorería en 390, 768 y 1440 px;
 - orden primario → detalle → devolución cuando corresponda;
 - detalle sin los bloques finales Versionado/Control y con timeline intacto;

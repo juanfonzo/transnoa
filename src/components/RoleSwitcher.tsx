@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { DemoRole, demoRoles, roleLabels } from "@/lib/roles";
 import { setRole } from "@/app/actions/set-role";
+import { landingByRole } from "@/lib/demo-experience";
 
 type RoleSwitcherProps = {
   currentRole: DemoRole;
@@ -24,13 +25,13 @@ export function RoleSwitcher({ currentRole }: RoleSwitcherProps) {
       const formData = new FormData();
       formData.set("role", value);
       await setRole(formData);
-      router.push("/");
+      router.push(landingByRole[value]);
       router.refresh();
     });
   };
 
   return (
-    <div className="flex w-full flex-nowrap items-center gap-2 sm:w-auto sm:gap-3">
+    <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-2 sm:flex-none sm:gap-3">
       <div className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
         <span className="sm:hidden">Demo</span>
         <span className="hidden sm:inline">Modo demo</span>

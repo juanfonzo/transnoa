@@ -301,7 +301,12 @@ async function main() {
   const [jefe, admin, tesoreria, colaborador] = await Promise.all([
     prisma.user.upsert({
       where: { email: "jefe.area@transnoa.demo" },
-      update: { name: "Jefe de Área", role: "JEFE_AREA", areaId: area.id },
+      update: {
+        name: "Jefe de Área",
+        role: "JEFE_AREA",
+        areaId: area.id,
+        notificationsSeenAt: null,
+      },
       create: {
         name: "Jefe de Área",
         email: "jefe.area@transnoa.demo",
@@ -311,7 +316,12 @@ async function main() {
     }),
     prisma.user.upsert({
       where: { email: "admin@transnoa.demo" },
-      update: { name: "Administración", role: "ADMIN", areaId: area.id },
+      update: {
+        name: "Administración",
+        role: "ADMIN",
+        areaId: area.id,
+        notificationsSeenAt: null,
+      },
       create: {
         name: "Administración",
         email: "admin@transnoa.demo",
@@ -321,7 +331,12 @@ async function main() {
     }),
     prisma.user.upsert({
       where: { email: "tesoreria@transnoa.demo" },
-      update: { name: "Tesorería", role: "TESORERIA", areaId: area.id },
+      update: {
+        name: "Tesorería",
+        role: "TESORERIA",
+        areaId: area.id,
+        notificationsSeenAt: null,
+      },
       create: {
         name: "Tesorería",
         email: "tesoreria@transnoa.demo",
@@ -331,7 +346,12 @@ async function main() {
     }),
     prisma.user.upsert({
       where: { email: "colaborador@transnoa.demo" },
-      update: { name: "Carlos Ruiz", role: "COLABORADOR", areaId: area.id },
+      update: {
+        name: "Carlos Ruiz",
+        role: "COLABORADOR",
+        areaId: area.id,
+        notificationsSeenAt: null,
+      },
       create: {
         name: "Carlos Ruiz",
         email: "colaborador@transnoa.demo",

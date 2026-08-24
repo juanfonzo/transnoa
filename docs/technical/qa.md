@@ -17,11 +17,11 @@
 
 - `prisma/seed.js` usa CommonJS de forma intencional porque el script se ejecuta con Node sin `type: module`.
 - `RenditionBulkForm.tsx` y `SolicitudWizard.tsx` conservan advertencias `react-hooks/set-state-in-effect` previas al kit. La regla sólo se rebaja en esos archivos; deben refactorizarse en una tarea funcional separada.
-- El baseline actual es de cinco advertencias: una variable no usada en `prisma/seed.js` y cuatro casos `set-state-in-effect` en formularios existentes. Siguen visibles y no se ocultaron.
+- El baseline actual es de cuatro advertencias `set-state-in-effect` en formularios existentes. Siguen visibles y no se ocultaron.
 
 ## Regresiones Del Flujo Crítico
 
-`npm run test:workflow` ejecuta doce casos sin dependencias nuevas sobre las reglas compartidas por las Server Actions y las fechas calendario:
+`npm run test:workflow` ejecuta las regresiones sin dependencias nuevas sobre las reglas compartidas por las Server Actions, las fechas calendario y la cuenta corriente:
 
 - cobertura de conceptos para todos los días del período;
 - lote, fecha prevista y trabajadores obligatorios antes de firma;
@@ -30,6 +30,10 @@
 - fecha y referencia real obligatorias para el pago;
 - edición de pagos limitada a solicitudes pagadas.
 - parsing UTC estricto, presentación sin desplazamiento, compatibilidad con horas heredadas y rangos inclusivos de fechas.
+- aplicación de saldo deudor o a favor, límite de neto cero, compensación inversa y precisión decimal.
+- correlativo de solicitud basado en el mayor número existente, sin depender de la fecha de creación.
+- tareas de notificación persistentes, lectura de novedades por fecha y suma correcta del contador.
+- parsing seguro de pestañas, estados, fechas y paginación de reportes; preservación de filtros en enlaces y exportaciones.
 
 El comando forma parte de `npm run verify` y del workflow `Code Quality` de GitHub Actions.
 

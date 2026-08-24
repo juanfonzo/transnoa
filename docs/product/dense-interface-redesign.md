@@ -71,7 +71,7 @@ Se conservan superficies cerradas únicamente para modales/formularios, avisos d
 
 ## Evidencia Requerida
 
-- Panel, Solicitudes, Administración, Colaboradores, Tesorería, Reportes y detalle de solicitud;
+- Solicitudes, Administración, Colaboradores, Tesorería, Reportes y detalle de solicitud;
 - roles Jefe de Área, Administración, Tesorería y Colaborador;
 - anchos 390, 768 y 1440 px;
 - bandejas sin card exterior, KPIs sin sombra y acciones sin cortes;

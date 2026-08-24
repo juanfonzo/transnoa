@@ -4,6 +4,8 @@ import "./globals.css";
 import { RoleSwitcher } from "@/components/RoleSwitcher";
 import { getDemoRole } from "@/lib/demo-auth";
 import { AppNav } from "@/components/AppNav";
+import { NotificationBell } from "@/components/NotificationBell";
+import { getNotificationFeed } from "@/lib/notifications";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,6 +28,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const role = await getDemoRole();
+  const notificationFeed = await getNotificationFeed(role);
 
   return (
     <html lang="es">
@@ -34,7 +37,7 @@ export default async function RootLayout({
       >
         <div className="min-h-screen">
           <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-emerald-400 to-sky-500" />
-          <header className="border-b border-slate-200/70 bg-white/90 backdrop-blur">
+          <header className="relative z-40 border-b border-slate-200/70 bg-white/90 backdrop-blur">
             <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
               <div className="flex items-center gap-4">
                 <div className="rounded-2xl bg-slate-900 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-white">
@@ -52,7 +55,10 @@ export default async function RootLayout({
                   </p>
                 </div>
               </div>
-              <RoleSwitcher currentRole={role} />
+              <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
+                <RoleSwitcher currentRole={role} />
+                <NotificationBell key={role} feed={notificationFeed} />
+              </div>
             </div>
           </header>
           <AppNav currentRole={role} />

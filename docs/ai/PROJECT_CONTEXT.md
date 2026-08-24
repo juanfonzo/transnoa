@@ -30,12 +30,13 @@
 
 ## Módulos
 
-- Panel por rol demo.
+- Módulo operativo principal por rol demo con KPIs reales.
 - Solicitudes y asignación diaria de colaboradores/conceptos.
 - Administración: bandeja, lote/fecha, pagos, correcciones, tasas y retroactivos.
 - Rendiciones por colaborador y tramos.
 - Cuenta corriente de colaboradores.
-- Tesorería y exportaciones.
+- Notificaciones simples por usuario derivadas de tareas y eventos reales del circuito.
+- Tesorería y reportes paginados de saldos, correcciones y retroactivos con exportaciones filtradas.
 
 ## Roles Del Dominio
 

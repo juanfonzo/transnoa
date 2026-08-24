@@ -24,6 +24,7 @@ type WorkerOption = {
   id: string;
   name: string;
   legajo: string;
+  balance: number;
 };
 
 type SolicitudWizardProps = {
@@ -156,10 +157,30 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
       maximumFractionDigits: 1,
     });
 
-  const totalAmount = selectedWorkerList.reduce((sum, worker) => {
-    const days = getViaticDays(worker.id);
-    return sum + days * dailyAmount;
-  }, 0);
+  const getGrossAmount = (workerId: string) =>
+    getViaticDays(workerId) * dailyAmount;
+
+  const getAppliedBalance = (worker: WorkerOption) => {
+    const grossAmount = getGrossAmount(worker.id);
+    if (grossAmount <= 0) return 0;
+    return worker.balance < 0
+      ? Math.max(worker.balance, -grossAmount)
+      : worker.balance;
+  };
+
+  const assignedWorkerList = selectedWorkerList.filter(
+    (worker) => getViaticDays(worker.id) > 0,
+  );
+
+  const totalGrossAmount = assignedWorkerList.reduce(
+    (sum, worker) => sum + getGrossAmount(worker.id),
+    0,
+  );
+  const totalAppliedBalance = assignedWorkerList.reduce(
+    (sum, worker) => sum + getAppliedBalance(worker),
+    0,
+  );
+  const totalNetAmount = totalGrossAmount + totalAppliedBalance;
 
   const hasConceptsForEveryDay =
     dates.length > 0 &&
@@ -357,7 +378,21 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
                         </span>
                       </span>
                     </span>
-                    <span className="text-xs text-slate-500">Asignar por día</span>
+                    {worker.balance === 0 ? (
+                      <span className="text-xs text-slate-500">
+                        Sin saldo pendiente
+                      </span>
+                    ) : (
+                      <span
+                        className={`text-xs font-medium ${
+                          worker.balance > 0
+                            ? "text-emerald-700"
+                            : "text-amber-700"
+                        }`}
+                      >
+                        {worker.balance > 0 ? "A favor" : "A descontar"}: {formatCurrency(Math.abs(worker.balance))}
+                      </span>
+                    )}
                   </label>
                 ))}
               </div>
@@ -531,15 +566,54 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Trabajadores
                 </p>
-                <ul className="mt-2 space-y-1 text-sm text-slate-700">
-                  {selectedWorkerList.map((worker) => (
-                    <li key={worker.id} className="flex justify-between">
-                      <span>{worker.name}</span>
-                      <span className="text-slate-500">
-                        {formatViaticDays(getViaticDays(worker.id))} viático(s)
-                      </span>
-                    </li>
-                  ))}
+                <ul className="mt-2 divide-y divide-slate-200 text-sm text-slate-700">
+                  {assignedWorkerList.map((worker) => {
+                    const grossAmount = getGrossAmount(worker.id);
+                    const appliedBalance = getAppliedBalance(worker);
+                    const netAmount = grossAmount + appliedBalance;
+
+                    return (
+                      <li key={worker.id} className="py-3 first:pt-1 last:pb-1">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="font-semibold text-slate-900">
+                            {worker.name}
+                          </span>
+                          <span className="text-xs text-slate-500">
+                            {formatViaticDays(getViaticDays(worker.id))} viático(s)
+                          </span>
+                        </div>
+                        <dl className="mt-2 grid grid-cols-3 gap-3 text-xs">
+                          <div>
+                            <dt className="text-slate-500">Bruto</dt>
+                            <dd className="font-medium text-slate-800">
+                              {formatCurrency(grossAmount)}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-slate-500">Saldo aplicado</dt>
+                            <dd
+                              className={`font-medium ${
+                                appliedBalance < 0
+                                  ? "text-amber-700"
+                                  : appliedBalance > 0
+                                    ? "text-emerald-700"
+                                    : "text-slate-800"
+                              }`}
+                            >
+                              {appliedBalance > 0 ? "+" : ""}
+                              {formatCurrency(appliedBalance)}
+                            </dd>
+                          </div>
+                          <div className="text-right">
+                            <dt className="text-slate-500">Neto</dt>
+                            <dd className="font-semibold text-slate-900">
+                              {formatCurrency(netAmount)}
+                            </dd>
+                          </div>
+                        </dl>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
@@ -556,14 +630,18 @@ export function SolicitudWizard({ areas, workers, dailyAmount }: SolicitudWizard
               <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Total estimado
+                    Total neto a enviar
                   </p>
                   <p className="text-lg font-semibold text-slate-900">
-                    {formatCurrency(totalAmount)}
+                    {formatCurrency(totalNetAmount)}
                   </p>
                 </div>
-                <div className="text-xs text-slate-500">
-                  Monto diario {formatCurrency(dailyAmount)}
+                <div className="text-right text-xs text-slate-500">
+                  <p>Bruto {formatCurrency(totalGrossAmount)}</p>
+                  <p>
+                    Saldo aplicado {totalAppliedBalance > 0 ? "+" : ""}
+                    {formatCurrency(totalAppliedBalance)}
+                  </p>
                 </div>
               </div>
             </div>

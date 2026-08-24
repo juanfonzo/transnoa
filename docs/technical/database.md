@@ -10,6 +10,7 @@
 - `ViaticRateHistory`, `RetroactiveAdjustmentBatch/Item`.
 - `ViaticRendition` y `ViaticRenditionLeg`.
 - `AuditLog`.
+- `User.notificationsSeenAt` conserva únicamente la última lectura de novedades; las alertas se derivan del estado real y no duplican eventos del dominio.
 
 ## Reglas
 
@@ -17,12 +18,16 @@
 - Mantener uniques de número de solicitud, legajo, email y relaciones uno-a-uno.
 - Preservar versionado y referencias de auditoría.
 - Crédito suma y débito resta en la lectura de saldos.
+- La aplicación automática guarda el saldo con signo en la solicitud y crea el movimiento inverso en la misma transacción para impedir su reutilización; la deuda se limita para que el neto no sea negativo.
 - Revisar transacciones para operaciones que cambian estado y crean pago/firma/saldo/auditoría.
 - Tratar inicio, fin y fechas de pago/vigencia como fechas calendario: persistir nuevas entradas a medianoche UTC y formatearlas con UTC; los timestamps de auditoría y tramos conservan semántica de instante.
+- Las tareas de la campana permanecen visibles mientras su estado siga pendiente; `notificationsSeenAt` sólo afecta novedades informativas.
 
 ## Evolución
 
 `prisma/migrations/0_init` representa el baseline completo del schema. La Neon de pruebas existente fue comparada sin drift y marcada con `prisma migrate resolve --applied 0_init`.
+
+`20260824120000_add_notifications_seen_at` agrega de forma idempotente el timestamp nullable de lectura. En la Neon compartida de demo se aplicó mediante el flujo manual de `db push`; una futura ejecución controlada de `migrate deploy` puede registrar la migración sin volver a crear la columna.
 
 - POC actual: desarrollo y demo comparten la Neon de pruebas; el schema se sincroniza manualmente desde un entorno controlado y nunca durante el build de Vercel.
 - Para una sincronización aprobada de la POC: identificar el destino, ejecutar `npm run prisma:validate` y luego `npm run db:push -- --skip-generate`, sin `--accept-data-loss`.
