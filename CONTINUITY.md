@@ -2,7 +2,7 @@
   - Iterar pruebas y mejoras por rol/proceso sobre la app en `http://localhost:3000`.
   - Mantener un flujo reproducible de calidad y un despliegue Vercel/Neon seguro.
   - Elevar la demo a una experiencia comercial excelente que comunique valor, madurez y beneficios concretos para cada rol de Transnoa.
-  - Desbloquear `vercel-build` cuando Vercel sólo dispone de la conexión Neon integrada, sin convertir la ausencia de una conexión apta para migraciones en un despliegue inseguro.
+  - Mantener `vercel-build` no mutante para que la POC pueda desplegarse sólo con la conexión Neon de runtime.
 - Constraints/Assumptions:
   - Seguir `AGENTS.md`, mantener UTF-8 y cambios pequeños sin dependencias nuevas.
   - `F:\Repositorios\gesuite` es referencia estrictamente de sólo lectura.
@@ -16,9 +16,10 @@
   - `DATABASE_URL` usa el pooler para runtime; Prisma Migrate requiere `DIRECT_URL` sin `-pooler`.
   - `prisma/migrations/0_init` es el baseline canónico; no editar migraciones aplicadas.
   - La demo seguirá el requerimiento original: Tesorería registra pagos y solicita correcciones; Administración valida, estandariza y resuelve correcciones.
-  - El wrapper de migraciones prioriza `DIRECT_URL`, acepta `DATABASE_URL_UNPOOLED` de la integración Neon/Vercel y nunca migra por una URL pooled como fallback silencioso.
+  - Vercel no ejecuta migraciones, `db push` ni seed; la Neon compartida de demo se sincroniza manualmente y antes del deploy cuando sea necesario.
+  - El wrapper de migraciones se conserva para operaciones manuales futuras: prioriza `DIRECT_URL`, acepta `DATABASE_URL_UNPOOLED` y nunca usa una URL pooled como fallback silencioso.
 - State:
-  - Corrección de Vercel y segundo lote comercial implementados y verificados; listo para redeploy y handoff.
+  - Build de Vercel desacoplado de la base y verificado; listo para redeploy.
 - Done:
   - Implementado el kit Dev IA adaptado: 14 skills, 6 agentes opcionales, políticas, routing, checks, hooks y CI.
   - Primer lote crítico implementado y aceptado con pruebas UI/DB (`REQ-0003`).
@@ -47,19 +48,23 @@
   - Verificados visualmente los cuatro roles en desktop, tablet y móvil, incluidos pago, devolución, foco modal y acceso denegado.
   - Validación final: `npm run verify` (13/13 tests, 0 errores y 4 warnings heredados), UI strict, Prisma validate, `npx next build`, diff check, seed y tres exportaciones HTTP 200; consola Playwright 0/0.
   - `npm run build` no puede regenerar Prisma mientras Windows mantiene el DLL cargado; el build Next.js aislado sí pasa y no se detuvo ningún proceso ajeno para forzarlo.
-  - Corregido el fallo de Vercel: `DATABASE_URL_UNPOOLED` ya es reconocida, con 6/6 regresiones; `npm run vercel-build` pasó completo contra la Neon de pruebas y no encontró migraciones pendientes.
+  - El soporte de migraciones manuales reconoce `DATABASE_URL_UNPOOLED`, con regresiones automatizadas y rechazo seguro de URLs pooled.
   - Definido `docs/product/request-detail-experience.md` y agregado detalle server-side por rol con resumen, cuadrilla, conceptos, versiones, firma, pago, correcciones, rendiciones y timeline.
   - Agregados controles demo server-side para creación, estandarización, corrección y firma, además de los ya existentes para pago/devolución.
   - Detalle enlazado desde Jefatura, Administración, Tesorería y Mi cuenta; Colaborador sólo ve su asignación y recibe acceso insuficiente ante una solicitud ajena.
   - QA Playwright en 390/768/1440 px: firma real desde el detalle, rechazo de pago con rol incorrecto, modal/teclado, evidencia de firma/pago y consola 0 errores/0 warnings.
   - Seed restaurado con exactamente siete escenarios y cronología explícita creación → firma → devolución/pago.
   - Validación final: `npm run verify` (15 workflow + 6 deployment), UI strict, Prisma validate, `git diff --check` y `npm run vercel-build` completo usando `DATABASE_URL_UNPOOLED`.
+  - Confirmado el destino Neon compartido de pruebas/demo y ejecutado `prisma db push --skip-generate`: la base ya estaba sincronizada y no sufrió cambios.
+  - `vercel-build` ahora delega únicamente en `npm run build`; no ejecuta migraciones, `db push` ni seed.
+  - Regresión de despliegue ampliada a 7/7 casos y `npm run vercel-build` completado sin `DIRECT_URL` ni `DATABASE_URL_UNPOOLED` en el proceso.
+  - Verificación final del ajuste: `npm run verify` pasa con 15 pruebas de workflow, 7 de despliegue y 4 warnings de lint preexistentes.
 - Now:
-  - Handoff de la corrección de despliegue y del detalle trazable.
+  - Handoff del ajuste de despliegue no mutante.
 - Next:
-  - Redeploy en Vercel y confirmar que la integración Neon expone `DATABASE_URL_UNPOOLED` en el entorno objetivo.
+  - Redeploy en Vercel con sólo `DATABASE_URL` y comprobar la demo.
 - Open questions (UNCONFIRMED if needed):
-  - UNCONFIRMED: si la integración Neon del proyecto no publica `DATABASE_URL_UNPOOLED`, debe habilitarse esa variable o configurarse `DIRECT_URL` manualmente antes del redeploy.
+  - Ninguna para el redeploy actual; una etapa productiva requerirá ambientes separados y un pipeline explícito de migraciones.
 - Working set (files/ids/commands):
   - Migraciones: `prisma/migrations/0_init/`, `scripts/prisma-migrate-deploy.mjs`, `scripts/verify-fresh-migration.mjs`.
   - Fechas: `src/lib/date-only.ts`, acciones/páginas/exportaciones relacionadas, `scripts/tests/date-only.test.mjs`.

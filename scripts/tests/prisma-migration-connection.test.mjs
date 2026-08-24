@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { resolveMigrationConnection } from "../lib/prisma-migration-connection.mjs";
 
@@ -6,6 +7,17 @@ const pooledUrl =
   "postgresql://user:secret@ep-demo-pooler.us-east-2.aws.neon.tech/transnoa";
 const directUrl =
   "postgresql://user:secret@ep-demo.us-east-2.aws.neon.tech/transnoa";
+
+test("el build de Vercel no ejecuta operaciones de base de datos", () => {
+  const packageJson = JSON.parse(
+    readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
+  );
+  const buildCommand = packageJson.scripts["vercel-build"];
+  const buildChain = `${buildCommand} && ${packageJson.scripts.build}`;
+
+  assert.equal(buildCommand, "npm run build");
+  assert.doesNotMatch(buildChain, /migrate|db:push|seed/i);
+});
 
 test("prioriza DIRECT_URL para las migraciones", () => {
   const result = resolveMigrationConnection({

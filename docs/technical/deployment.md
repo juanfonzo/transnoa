@@ -1,26 +1,44 @@
 # Despliegue En Vercel
 
-## Contrato De Entorno
+## Contrato Actual De La Demo
 
-- `DATABASE_URL`: conexión de runtime. En Vercel/Neon conviene usar la URL con pooler.
-- `DATABASE_URL_UNPOOLED`: conexión directa que expone la integración Neon/Vercel para herramientas que no deben usar el pooler.
-- `DIRECT_URL`: override opcional para pipelines configurados manualmente. Tiene prioridad sobre `DATABASE_URL_UNPOOLED`.
-- El wrapper usa `DIRECT_URL`, luego `DATABASE_URL_UNPOOLED` y, sólo si `DATABASE_URL` ya es directa, usa esta última. Si sólo existe una URL pooled, falla antes de migrar para evitar advisory locks retenidos por una sesión reutilizada. La aplicación siempre conserva su `DATABASE_URL` de runtime.
-- Production y Preview deben usar bases o ramas Neon distintas. Una Preview nunca debe migrar la base de Production.
+- `DATABASE_URL` es la única variable de base obligatoria en Vercel y puede usar el pooler de Neon.
+- Desarrollo y la demo desplegada comparten actualmente una base Neon de pruebas ya preparada.
+- El build de Vercel no modifica schema ni datos: no ejecuta `migrate deploy`, `db push` ni seed.
+- `DATABASE_URL_UNPOOLED` y `DIRECT_URL` quedan reservadas para migraciones manuales futuras; no son necesarias para desplegar la POC actual.
 
 ## Build
 
-`vercel.json` fija `npm run vercel-build`, que ejecuta en orden:
+`vercel.json` fija `npm run vercel-build`, que delega en `npm run build` y ejecuta:
 
 1. `prisma generate`;
-2. `prisma migrate deploy` mediante `scripts/prisma-migrate-deploy.mjs`;
-3. `next build`.
+2. `next build`.
 
-La migración es idempotente: Prisma aplica únicamente archivos pendientes. No se ejecuta seed durante el build.
+Esto evita que una instalación o redeploy cambie accidentalmente la base compartida. La sincronización del schema es una operación previa, explícita y separada del despliegue.
 
-## Base Existente: Baseline Único
+## Sincronización Manual De La POC
 
-Antes del primer despliegue contra una base que ya fue creada con `prisma db push`:
+Cuando exista un cambio de `prisma/schema.prisma` aprobado para esta demo:
+
+1. Identificar el host y la base de destino sin exponer credenciales.
+2. Confirmar que se trata de la Neon de pruebas compartida y que existe autorización.
+3. Validar el schema y aplicar el cambio desde un entorno controlado:
+
+   ```bash
+   npm run prisma:validate
+   npm run db:push -- --skip-generate
+   ```
+
+4. No usar `--accept-data-loss`. Si Prisma advierte pérdida de datos, detenerse y diseñar una migración o forward-fix explícito.
+5. Ejecutar `npm run vercel-build` y recién después desplegar.
+
+No agregar `db push` al build de Vercel: aunque la base sea de pruebas, cada redeploy debe ser repetible y no mutante.
+
+## Migraciones Para Una Etapa Productiva
+
+El comando `npm run db:migrate:deploy` y su wrapper se mantienen disponibles, pero no forman parte del build. Antes de separar ambientes o pasar a producción se debe volver a un pipeline de migraciones con conexión directa y ramas Neon distintas para Preview y Production.
+
+Para una base existente creada con `prisma db push`, el baseline se registra una sola vez antes del primer despliegue:
 
 1. Confirmar el destino y hacer backup/branch en el proveedor.
 2. Comprobar que no existe drift:
@@ -43,7 +61,7 @@ Antes del primer despliegue contra una base que ya fue creada con `prisma db pus
    npm run db:migrate:deploy
    ```
 
-No repetir `resolve` en una base vacía. Una base nueva debe ejecutar directamente `npm run db:migrate:deploy` para crear todo el esquema.
+No repetir `resolve` en una base vacía. Una base nueva debe ejecutar directamente `npm run db:migrate:deploy` para crear todo el esquema desde un entorno controlado.
 
 Para comprobar la creación desde cero en un schema temporal de una base de pruebas:
 
@@ -63,9 +81,8 @@ El script rechaza la ejecución sin el flag explícito o sin conexión directa, 
 
 ## Checklist De Vercel
 
-- Confirmar que la integración Neon expone `DATABASE_URL` y `DATABASE_URL_UNPOOLED` en Production. Si el proyecto no usa la integración, configurar `DIRECT_URL` manualmente.
-- Configurar URLs diferentes para Preview.
-- No reutilizar la URL `-pooler` como `DIRECT_URL` ni como `DATABASE_URL_UNPOOLED`.
-- Confirmar que `prisma/migrations/**` está versionado.
-- Ejecutar el baseline una sola vez si la base ya tenía tablas.
+- Configurar `DATABASE_URL` en el entorno objetivo.
+- Confirmar que el Build Command sea `npm run vercel-build` y que no exista otro paso de migración en Vercel.
+- Sincronizar manualmente el schema antes del deploy sólo si hubo un cambio aprobado.
+- No ejecutar seed durante el build.
 - Desplegar y comprobar `/solicitudes` y `/administracion` contra el entorno correcto.

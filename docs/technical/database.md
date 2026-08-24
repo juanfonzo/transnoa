@@ -24,10 +24,12 @@
 
 `prisma/migrations/0_init` representa el baseline completo del schema. La Neon de pruebas existente fue comparada sin drift y marcada con `prisma migrate resolve --applied 0_init`.
 
-- Desarrollo de cambios de schema: generar migraciones nuevas con `prisma migrate dev` sobre una base/branch de desarrollo.
-- Preview y Production: aplicar únicamente `prisma migrate deploy`.
+- POC actual: desarrollo y demo comparten la Neon de pruebas; el schema se sincroniza manualmente desde un entorno controlado y nunca durante el build de Vercel.
+- Para una sincronización aprobada de la POC: identificar el destino, ejecutar `npm run prisma:validate` y luego `npm run db:push -- --skip-generate`, sin `--accept-data-loss`.
+- El comando `npm run db:migrate:deploy` queda disponible para uso manual, pero no se ejecuta en `vercel-build`.
+- Etapa productiva: generar migraciones nuevas con `prisma migrate dev` sobre una base/branch de desarrollo y aplicar `prisma migrate deploy` mediante un pipeline controlado con conexión directa.
 - Bases existentes creadas con `db push`: ejecutar el baseline una sola vez después de comprobar cero drift.
 - Bases nuevas: ejecutar directamente todas las migraciones; no usar `resolve`.
-- Para despliegues, el wrapper acepta `DIRECT_URL` o la variable oficial `DATABASE_URL_UNPOOLED` de Neon/Vercel. Consultar `docs/technical/deployment.md` para precheck, Vercel y recuperación.
+- El wrapper acepta `DIRECT_URL` o `DATABASE_URL_UNPOOLED` y rechaza URLs pooled. Consultar `docs/technical/deployment.md` para el flujo actual y la transición futura.
 
 Nunca ejecutar push, seed o SQL sin identificar el destino y confirmar autorización si contiene datos compartidos.
