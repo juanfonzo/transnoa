@@ -13,6 +13,10 @@ export function AppNav({ currentRole }: AppNavProps) {
   const pathname = usePathname();
   const navItems = navigationByRole[currentRole];
 
+  if (currentRole === "JEFE_AREA") {
+    return null;
+  }
+
   return (
     <nav
       aria-label="Navegación principal"
