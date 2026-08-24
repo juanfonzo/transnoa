@@ -7,6 +7,7 @@
 
 ---
 
+
 ## 0) Stack y lineamientos técnicos (obligatorio)
 
 * **Frontend/Backend**: Next.js (App Router) + TypeScript + Tailwind.
