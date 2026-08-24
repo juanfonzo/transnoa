@@ -29,7 +29,7 @@
   - La aplicación crea el movimiento inverso dentro de la misma transacción serializable; las correcciones copian el saldo aplicado sin consumirlo de nuevo.
   - Las notificaciones se derivan de estados/eventos canónicos; sólo `User.notificationsSeenAt` se persiste y las tareas no se ocultan hasta resolverse.
 - State:
-  - Reportes operativos implementados y verificados; listos para revisión del usuario.
+  - Corregido y verificado el manejo de foco de los modales; listo para revisión del usuario.
 - Done:
   - Implementado el kit Dev IA adaptado: 14 skills, 6 agentes opcionales, políticas, routing, checks, hooks y CI.
   - Primer lote crítico implementado y aceptado con pruebas UI/DB (`REQ-0003`).
@@ -92,10 +92,13 @@
   - Reemplazadas las descargas aisladas de `/reportes` por pestañas de Saldos, Correcciones y Retroactivos con KPIs reales, filtros en URL, paginación de 8 filas, vista responsive y estados vacíos diferenciados.
   - Agregadas tres exportaciones `.xls` que respetan los filtros activos; las exportaciones históricas se conservan como opción secundaria y todos los handlers mantienen el control por rol.
   - QA de reportes contra Neon en 390/768/1440 px: filtros, exportaciones 200, acceso negativo 403, página fuera de rango, build y consola 0 errores/0 warnings.
+  - Corregido el salto de foco al escribir: `Modal` conserva el callback de cierre sin reiniciar su efecto, recalcula el focus trap por paso y prioriza el primer campo del formulario.
+  - Los modales se renderizan en `document.body`, eliminando el formulario anidado de `Nuevo colaborador`; Escape cierra sólo el diálogo superior y restaura el foco.
+  - QA Playwright desktop/mobile: conceptos y alta de colaborador aceptan texto completo, Tab permanece en el modal y consola 0 errores/0 warnings; `npm run verify`, UI strict y build pasan.
 - Now:
-  - Esperar revisión de la experiencia de reportes.
+  - Esperar revisión del formulario de nueva solicitud.
 - Next:
-  - Definir con el usuario el siguiente lote de mejoras de la demo.
+  - Retomar el siguiente lote de mejoras de la demo acordado con el usuario.
 - Open questions (UNCONFIRMED if needed):
   - Ninguna para el redeploy actual; una etapa productiva requerirá ambientes separados y un pipeline explícito de migraciones.
 - Working set (files/ids/commands):
@@ -111,4 +114,5 @@
   - Cuenta corriente automática: `src/lib/viatic-balance.ts`, `src/lib/request-number.ts`, `src/app/actions/requests.ts`, wizard/detalle y `docs/product/automatic-balance-application.md`.
   - Notificaciones: `src/lib/notifications.ts`, `src/lib/notification-rules.ts`, `src/components/NotificationBell.tsx`, `src/app/actions/notifications.ts`, schema/migración y `docs/product/notifications.md`.
   - Reportes: `src/app/reportes/`, `src/lib/report-data.ts`, `src/lib/report-filters.ts` y `docs/product/operational-reports.md`.
+  - Modales y foco: `src/components/Modal.tsx`, `src/app/solicitudes/SolicitudWizard.tsx`, `src/app/solicitudes/WorkerCreateModal.tsx`.
   - Validación: `npm run verify`, `npm run kit:ui-check:strict`, `npm run prisma:validate`, `npx next build`, Playwright y `npm run db:seed`.

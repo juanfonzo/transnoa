@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect, useId, useRef } from "react";
+import { createPortal } from "react-dom";
 
 type ModalProps = {
   open: boolean;
@@ -12,8 +13,13 @@ type ModalProps = {
 
 export function Modal({ open, title, description, onClose, children }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
   const titleId = useId();
   const descriptionId = useId();
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -22,29 +28,45 @@ export function Modal({ open, title, description, onClose, children }: ModalProp
     const previousOverflow = document.body.style.overflow;
     const dialog = dialogRef.current;
     const focusableSelector =
-      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+      'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    const getFocusableElements = () =>
+      dialog
+        ? Array.from(dialog.querySelectorAll<HTMLElement>(focusableSelector))
+        : [];
 
     document.body.style.overflow = "hidden";
-    const focusableElements = dialog
-      ? Array.from(dialog.querySelectorAll<HTMLElement>(focusableSelector))
-      : [];
-    focusableElements[0]?.focus();
+    const initialFocus =
+      dialog?.querySelector<HTMLElement>("[data-modal-initial-focus]") ??
+      dialog?.querySelector<HTMLElement>(
+        'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])',
+      ) ??
+      getFocusableElements()[0];
+    initialFocus?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      const activeElement = document.activeElement as HTMLElement | null;
+      const activeDialog = activeElement?.closest('[role="dialog"]');
+      if (activeDialog && activeDialog !== dialog) return;
+
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
 
+      const focusableElements = getFocusableElements();
       if (event.key !== "Tab" || focusableElements.length === 0) return;
 
       const firstElement = focusableElements[0];
       const lastElement = focusableElements[focusableElements.length - 1];
-      if (event.shiftKey && document.activeElement === firstElement) {
+      if (!dialog?.contains(activeElement)) {
+        event.preventDefault();
+        firstElement.focus();
+      } else if (event.shiftKey && activeElement === firstElement) {
         event.preventDefault();
         lastElement.focus();
-      } else if (!event.shiftKey && document.activeElement === lastElement) {
+      } else if (!event.shiftKey && activeElement === lastElement) {
         event.preventDefault();
         firstElement.focus();
       }
@@ -56,13 +78,13 @@ export function Modal({ open, title, description, onClose, children }: ModalProp
       document.body.style.overflow = previousOverflow;
       previousFocus?.focus();
     };
-  }, [onClose, open]);
+  }, [open]);
 
   if (!open) {
     return null;
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
       <div
         className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm"
@@ -98,7 +120,8 @@ export function Modal({ open, title, description, onClose, children }: ModalProp
         </div>
         <div className="mt-4 overflow-y-auto pr-1">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
