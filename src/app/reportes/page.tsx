@@ -33,8 +33,8 @@ export default async function ReportesPage() {
         </Link>
       </header>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="grid border-y border-slate-200 md:grid-cols-2 xl:grid-cols-3 xl:divide-x xl:divide-slate-200">
+        <div className="border-b border-slate-200 py-5 md:px-5 md:first:pl-0 xl:border-b-0">
           <h3 className="text-lg font-semibold text-slate-900">
             Solicitudes
           </h3>
@@ -48,7 +48,7 @@ export default async function ReportesPage() {
             Descargar Excel
           </a>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="border-b border-slate-200 py-5 md:px-5 xl:border-b-0">
           <h3 className="text-lg font-semibold text-slate-900">Pagos</h3>
           <p className="mt-2 text-sm text-slate-600">
             Pagos registrados por lote, fecha y responsable de Tesorería.
@@ -60,7 +60,7 @@ export default async function ReportesPage() {
             Descargar Excel
           </a>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="py-5 md:px-5 xl:pr-0">
           <h3 className="text-lg font-semibold text-slate-900">
             Viáticos pagados
           </h3>
@@ -76,7 +76,7 @@ export default async function ReportesPage() {
         </div>
       </section>
 
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900">
+      <div className="border-l-2 border-emerald-400 pl-4 text-sm text-emerald-900">
         Los archivos conservan número de solicitud, lote y responsables para
         facilitar el control cruzado y la conciliación.
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import type { RequestStatus } from "@prisma/client";
+import Link from "next/link";
 import { useState } from "react";
 import { adminCreateCorrection, adminStandardize } from "@/app/actions/requests";
 import { ActionFeedback } from "@/components/ActionFeedback";
@@ -13,6 +14,7 @@ type AdminActionsProps = {
   status: RequestStatus;
   loteNumber?: string | null;
   plannedPaymentDate?: Date | null;
+  detailHref?: string;
 };
 
 export function AdminActions({
@@ -20,6 +22,7 @@ export function AdminActions({
   status,
   loteNumber,
   plannedPaymentDate,
+  detailHref,
 }: AdminActionsProps) {
   const [standardizeOpen, setStandardizeOpen] = useState(false);
   const [correctionOpen, setCorrectionOpen] = useState(false);
@@ -29,7 +32,7 @@ export function AdminActions({
   const canStandardize = status === "SUBMITTED_TO_ADMIN" || status === "ADMIN_REVIEW";
   const canCorrect = status === "TREASURY_RETURNED" || status === "ADMIN_CORRECTION";
 
-  if (!canStandardize && !canCorrect) {
+  if (!canStandardize && !canCorrect && !detailHref) {
     return <span className="text-xs text-slate-400">-</span>;
   }
 
@@ -55,30 +58,40 @@ export function AdminActions({
 
   return (
     <>
-      {canStandardize && (
-        <button
-          type="button"
-          onClick={() => {
-            setStandardizeError(null);
-            setStandardizeOpen(true);
-          }}
-          className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600"
-        >
-          Colocar lote
-        </button>
-      )}
-      {canCorrect && (
-        <button
-          type="button"
-          onClick={() => {
-            setCorrectionError(null);
-            setCorrectionOpen(true);
-          }}
-          className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600"
-        >
-          Crear corrección
-        </button>
-      )}
+      <div className="flex flex-wrap items-center gap-2">
+        {canStandardize && (
+          <button
+            type="button"
+            onClick={() => {
+              setStandardizeError(null);
+              setStandardizeOpen(true);
+            }}
+            className="inline-flex min-h-10 items-center rounded-full bg-slate-900 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+          >
+            Asignar lote
+          </button>
+        )}
+        {canCorrect && (
+          <button
+            type="button"
+            onClick={() => {
+              setCorrectionError(null);
+              setCorrectionOpen(true);
+            }}
+            className="inline-flex min-h-10 items-center rounded-full bg-slate-900 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+          >
+            Resolver devolución
+          </button>
+        )}
+        {detailHref && (
+          <Link
+            href={detailHref}
+            className="inline-flex min-h-10 items-center rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-slate-300 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+          >
+            Ver detalle
+          </Link>
+        )}
+      </div>
 
       <Modal
         open={standardizeOpen}
@@ -86,8 +99,8 @@ export function AdminActions({
           setStandardizeOpen(false);
           setStandardizeError(null);
         }}
-        title="Colocar lote"
-        description="Coloca lote y fecha prevista antes de enviar a firma."
+        title="Asignar lote"
+        description="Asigná lote y fecha prevista antes de enviar a firma."
       >
         <form action={handleStandardize} className="space-y-4">
           <input type="hidden" name="requestId" value={requestId} />

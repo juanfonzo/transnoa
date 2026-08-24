@@ -3,13 +3,14 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { addDateOnlyDays, parseDateOnly } from "@/lib/date-only";
 import { formatCurrency, formatDate, formatDateOnly } from "@/lib/format";
-import { getRequestStatusLabel, getStatusTone, getToneClasses } from "@/lib/status";
+import { getStatusTone } from "@/lib/status";
 import { AdminActions } from "@/app/administracion/AdminActions";
 import { AdminRateModal } from "@/app/administracion/AdminRateModal";
 import { RenditionBulkForm } from "@/app/administracion/RenditionBulkForm";
 import { applyRetroactiveBatch } from "@/app/actions/rates";
 import { SubmitButton } from "@/components/SubmitButton";
 import { StatusPill } from "@/components/StatusPill";
+import { KpiStrip } from "@/components/KpiStrip";
 import { RoleAccessNotice } from "@/components/RoleAccessNotice";
 import { getDemoRole } from "@/lib/demo-auth";
 
@@ -17,27 +18,22 @@ const adminQueues = [
   {
     status: "SUBMITTED_TO_ADMIN",
     title: "Ingresos nuevos",
-    description: "Solicitudes enviadas por jefes para validar.",
   },
   {
     status: "ADMIN_REVIEW",
     title: "En revisión",
-    description: "Administración está estandarizando los datos.",
   },
   {
     status: "PENDING_SIGNATURE",
     title: "Pendiente de firma",
-    description: "Listas para que el jefe firme la versión final.",
   },
   {
     status: "TREASURY_RETURNED",
     title: "Devueltas por Tesorería",
-    description: "Requieren cambios de lote o fecha.",
   },
   {
     status: "ADMIN_CORRECTION",
     title: "En corrección",
-    description: "Versiones en ajuste antes de reenviar.",
   },
 ] as const;
 
@@ -246,43 +242,62 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
       </header>
       {activeTab === "solicitudes" && (
         <section className="grid gap-4">
-          <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
-            {adminQueues.map((queue) => {
-              const tone = getStatusTone(queue.status as RequestStatus);
-              return (
-                <div
-                  key={queue.status}
-                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-                >
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {queue.title}
-                  </p>
-                  <p className="mt-2 text-xl font-semibold text-slate-900">
-                    {statusCounts[queue.status] ?? 0}
-                  </p>
-                  <p className="mt-1 hidden text-sm text-slate-600 sm:block">
-                    {queue.description}
-                  </p>
-                  <span
-                    className={`mt-3 hidden rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide sm:inline-flex ${getToneClasses(
-                      tone
-                    )}`}
-                  >
-                    {getRequestStatusLabel(queue.status)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          <KpiStrip
+            label="Resumen de solicitudes de Administración"
+            items={adminQueues.map((queue) => ({
+              label: queue.title,
+              value: statusCounts[queue.status] ?? 0,
+              tone: getStatusTone(queue.status as RequestStatus),
+            }))}
+          />
 
           {adminRequests.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
               No hay solicitudes pendientes para Administración.
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <table className="min-w-[720px] w-full text-left text-sm">
-                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <>
+              <div className="divide-y divide-slate-200 border-y border-slate-200 md:hidden">
+                {adminRequests.map((request) => {
+                  const version = request.versions[0];
+                  return (
+                    <article key={request.id} className="py-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-slate-900">{request.requestNumber}</p>
+                          <p className="text-xs text-slate-500">
+                            {request.area.name} · {formatDate(request.createdAt)}
+                          </p>
+                        </div>
+                        <StatusPill status={request.status} />
+                      </div>
+                      <dl className="mt-3 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+                        <div>
+                          <dt className="text-xs uppercase tracking-wide text-slate-500">Versión</dt>
+                          <dd className="font-medium text-slate-800">v{version?.versionNumber ?? "-"}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs uppercase tracking-wide text-slate-500">Lote</dt>
+                          <dd className="font-medium text-slate-800">{version?.loteNumber ?? "Sin asignar"}</dd>
+                        </div>
+                      </dl>
+                      <div className="mt-3 border-t border-slate-100 pt-3">
+                        <AdminActions
+                          requestId={request.id}
+                          status={request.status}
+                          loteNumber={version?.loteNumber}
+                          plannedPaymentDate={version?.plannedPaymentDate}
+                          detailHref={`/solicitudes/${request.id}`}
+                        />
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              <div className="hidden overflow-x-auto border-y border-slate-200 md:block">
+                <table className="min-w-[720px] w-full text-left text-sm">
+                <thead className="border-b border-slate-200 bg-slate-50/60 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   <tr>
                     <th className="px-4 py-3">Solicitud</th>
                     <th className="px-4 py-3">Área</th>
@@ -316,116 +331,106 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                           <StatusPill status={request.status} />
                         </td>
                         <td className="px-4 py-3">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Link
-                              href={`/solicitudes/${request.id}`}
-                              className="inline-flex min-h-10 items-center rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
-                            >
-                              Ver detalle
-                            </Link>
-                            <AdminActions
-                              requestId={request.id}
-                              status={request.status}
-                              loteNumber={version?.loteNumber}
-                              plannedPaymentDate={version?.plannedPaymentDate}
-                            />
-                          </div>
+                          <AdminActions
+                            requestId={request.id}
+                            status={request.status}
+                            loteNumber={version?.loteNumber}
+                            plannedPaymentDate={version?.plannedPaymentDate}
+                            detailHref={`/solicitudes/${request.id}`}
+                          />
                         </td>
                       </tr>
                     );
                   })}
                 </tbody>
-              </table>
-            </div>
+                </table>
+              </div>
+            </>
           )}
         </section>
       )}
 
       {activeTab === "viaticos" && (
         <section className="space-y-6">
-          <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Viático diario
-                </p>
-                <p className="text-2xl font-semibold text-slate-900">
-                  {formatCurrency(Number(latestRate?.amount ?? 0))}
-                </p>
-                <p className="text-xs text-slate-500">
-                  Vigente desde {formatDateOnly(latestRate?.effectiveFrom)}
-                </p>
-              </div>
-              <div className="mt-3">
+          <KpiStrip
+            label="Resumen de viáticos y retroactivos"
+            items={[
+              {
+                label: "Viático diario",
+                value: formatCurrency(Number(latestRate?.amount ?? 0)),
+                detail: `Desde ${formatDateOnly(latestRate?.effectiveFrom)}`,
+                tone: "emerald",
+                valueClassName: "text-xl",
+              },
+              {
+                label: "Último retroactivo",
+                value: latestBatch?.items.length ?? 0,
+                detail: latestBatch
+                  ? `${latestBatch.periodMonth} · ${latestBatch.status}`
+                  : "Sin lotes",
+                tone: "amber",
+              },
+            ]}
+          />
+
+          <div className="grid gap-6 lg:grid-cols-2 lg:divide-x lg:divide-slate-200">
+            <section className="lg:pr-6" aria-labelledby="rate-actions-title">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Valor vigente
+              </p>
+              <h3 id="rate-actions-title" className="mt-1 text-lg font-semibold text-slate-900">
+                Actualizar viático diario
+              </h3>
+              <p className="mt-1 text-sm text-slate-600">
+                El cambio genera automáticamente el cálculo retroactivo correspondiente.
+              </p>
+              <div className="mt-4">
                 <AdminRateModal
                   currentAmount={Number(latestRate?.amount ?? 0)}
                   effectiveFrom={latestRate?.effectiveFrom ?? new Date()}
                 />
               </div>
-            </div>
+            </section>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <section className="lg:pl-6" aria-labelledby="retroactive-title">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Ajuste retroactivo
               </p>
               {latestBatch ? (
-                <div className="mt-3 space-y-3 text-sm">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="mt-1 space-y-4 text-sm">
+                  <div className="flex flex-wrap items-end justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">
+                      <h3 id="retroactive-title" className="text-lg font-semibold text-slate-900">
                         Período {latestBatch.periodMonth}
-                      </p>
+                      </h3>
                       <p className="text-xs text-slate-500">
-                        Desde {formatDateOnly(latestBatch.effectiveFromDate)}
+                        {formatCurrency(Number(latestBatch.oldAmount))} → {formatCurrency(Number(latestBatch.newAmount))}
                       </p>
                     </div>
-                    <div className="text-xs text-slate-500">
-                      {formatCurrency(Number(latestBatch.oldAmount))} a
-                      {formatCurrency(Number(latestBatch.newAmount))}
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <span className="rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
-                      {latestBatch.status}
-                    </span>
-                    {latestBatch.items.length > 0 &&
-                      latestBatch.status === "DRAFT" && (
-                        <form action={applyRetroactiveBatch}>
-                          <input
-                            type="hidden"
-                            name="batchId"
-                            value={latestBatch.id}
-                          />
-                          <SubmitButton
-                            label="Aplicar retroactivos"
-                            pendingLabel="Aplicando..."
-                            className="rounded-full bg-slate-900 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white"
-                          />
-                        </form>
-                      )}
+                    {latestBatch.items.length > 0 && latestBatch.status === "DRAFT" && (
+                      <form action={applyRetroactiveBatch}>
+                        <input type="hidden" name="batchId" value={latestBatch.id} />
+                        <SubmitButton
+                          label="Aplicar retroactivos"
+                          pendingLabel="Aplicando..."
+                          className="rounded-full bg-slate-900 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-white"
+                        />
+                      </form>
+                    )}
                   </div>
                   {latestBatch.items.length === 0 ? (
-                    <p className="text-xs text-slate-500">
-                      No hay colaboradores con ajustes pendientes.
-                    </p>
+                    <p className="text-xs text-slate-500">No hay colaboradores con ajustes pendientes.</p>
                   ) : (
-                    <div className="max-h-48 space-y-2 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
+                    <div className="max-h-48 divide-y divide-slate-200 overflow-auto border-y border-slate-200 text-xs">
                       {latestBatch.items.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center justify-between"
-                        >
-                          <span className="font-semibold text-slate-700">
-                            {item.worker.name}
-                          </span>
-                          <span className="text-slate-600">
+                        <div key={item.id} className="flex items-center justify-between gap-4 py-2.5">
+                          <span className="font-semibold text-slate-700">{item.worker.name}</span>
+                          <span className="text-right text-slate-600">
                             {Number(item.daysAffected).toLocaleString("es-AR", {
-                              minimumFractionDigits:
-                                Number(item.daysAffected) % 1 === 0 ? 0 : 1,
+                              minimumFractionDigits: Number(item.daysAffected) % 1 === 0 ? 0 : 1,
                               maximumFractionDigits: 1,
                             })}{" "}
-                            días x{" "}
-                            {formatCurrency(Number(item.amountDiff))}
+                            días · {formatCurrency(Number(item.amountDiff))}
                           </span>
                         </div>
                       ))}
@@ -433,14 +438,14 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                   )}
                 </div>
               ) : (
-                <p className="mt-3 text-sm text-slate-500">
+                <p id="retroactive-title" className="mt-2 text-sm text-slate-500">
                   Aún no se generaron ajustes retroactivos.
                 </p>
               )}
-            </div>
+            </section>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <section>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">
@@ -457,9 +462,9 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                 No hay colaboradores registrados.
               </div>
             ) : (
-              <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="mt-4 overflow-x-auto border-y border-slate-200">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <thead className="border-b border-slate-200 bg-slate-50/60 text-xs font-semibold uppercase tracking-wide text-slate-500">
                     <tr>
                       <th className="px-4 py-3">Colaborador</th>
                       <th className="px-4 py-3">Legajo</th>
@@ -540,7 +545,7 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                 </table>
               </div>
             )}
-          </div>
+          </section>
         </section>
       )}
       {activeTab === "rendiciones" && (
@@ -610,7 +615,7 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
               No hay viáticos pagados para rendir con esos filtros.
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="divide-y divide-slate-200 border-y border-slate-200">
               {renditionFilteredVersions.map((version) => {
                 const payment = version.payment;
                 const allWorkers = [...version.workers].sort((a, b) =>
@@ -630,9 +635,9 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                 return (
                   <details
                     key={version.id}
-                    className="rounded-2xl border border-slate-200 bg-white shadow-sm"
+                    className="group"
                   >
-                    <summary className="cursor-pointer px-4 py-3 text-sm">
+                    <summary className="cursor-pointer py-4 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900">
                       <div className="flex flex-wrap items-center justify-between gap-4">
                         <div>
                           <p className="font-semibold text-slate-900">
@@ -674,7 +679,7 @@ export default async function AdministracionPage({ searchParams }: PageProps) {
                         </div>
                       </div>
                     </summary>
-                    <div className="border-t border-slate-100 px-4 py-4">
+                    <div className="border-t border-slate-100 py-4">
                       <RenditionBulkForm
                         workers={allWorkers.map((entry) => ({
                           requestWorkerId: entry.id,

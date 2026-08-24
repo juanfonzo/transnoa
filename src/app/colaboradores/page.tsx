@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { WorkerCreateModal } from "@/app/solicitudes/WorkerCreateModal";
 import { RoleAccessNotice } from "@/components/RoleAccessNotice";
+import { KpiStrip } from "@/components/KpiStrip";
 import { getDemoRole } from "@/lib/demo-auth";
 import { formatCurrency, formatDateOnly } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -70,13 +71,6 @@ export default async function ColaboradoresPage() {
         : balance < 0
           ? "Saldo a regularizar"
           : "Sin saldo pendiente";
-    const balanceTone =
-      balance > 0
-        ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-        : balance < 0
-          ? "border-amber-200 bg-amber-50 text-amber-900"
-          : "border-slate-200 bg-slate-50 text-slate-800";
-
     return (
       <div className="space-y-6">
         <header>
@@ -89,61 +83,46 @@ export default async function ColaboradoresPage() {
           </p>
         </header>
 
-        <section className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
-          <article className={`rounded-3xl border p-6 shadow-sm ${balanceTone}`}>
-            <p className="text-xs font-semibold uppercase tracking-wide opacity-75">
-              {balanceLabel}
-            </p>
-            <p className="mt-2 text-3xl font-semibold">{formatCurrency(balance)}</p>
-            <p className="mt-3 max-w-xl text-sm leading-6 opacity-80">
-              {balance < 0
-                ? "Este importe corresponde a viáticos no utilizados o ajustes pendientes de compensación."
-                : balance > 0
-                  ? "Este importe quedará disponible para compensar próximos viáticos."
-                  : "No tenés importes pendientes de compensación en tu cuenta."}
-            </p>
-          </article>
-          <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Colaborador
-            </p>
-            <p className="mt-2 text-xl font-semibold text-slate-900">{worker.name}</p>
-            <dl className="mt-4 space-y-3 text-sm">
-              <div className="flex justify-between gap-4">
-                <dt className="text-slate-500">Legajo</dt>
-                <dd className="font-semibold text-slate-800">{worker.legajo}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-slate-500">Provincia</dt>
-                <dd className="text-right font-semibold text-slate-800">
-                  {worker.province ?? "Sin informar"}
-                </dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-slate-500">Estado</dt>
-                <dd className="font-semibold text-emerald-700">
-                  {worker.status ?? "Activo"}
-                </dd>
-              </div>
-            </dl>
-          </article>
+        <KpiStrip
+          label="Resumen de cuenta personal"
+          items={[
+            {
+              label: balanceLabel,
+              value: formatCurrency(balance),
+              tone: balance > 0 ? "emerald" : balance < 0 ? "amber" : "slate",
+              valueClassName: "text-xl",
+            },
+            { label: "Pagos recibidos", value: payments.length, tone: "sky" },
+            { label: "Movimientos", value: worker.balanceEntries.length, tone: "slate" },
+          ]}
+        />
+
+        <section className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 pb-4" aria-label="Datos del colaborador">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Colaborador</p>
+            <p className="mt-1 text-xl font-semibold text-slate-900">{worker.name}</p>
+          </div>
+          <dl className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
+            <div><dt className="text-xs text-slate-500">Legajo</dt><dd className="font-semibold text-slate-800">{worker.legajo}</dd></div>
+            <div><dt className="text-xs text-slate-500">Provincia</dt><dd className="font-semibold text-slate-800">{worker.province ?? "Sin informar"}</dd></div>
+            <div><dt className="text-xs text-slate-500">Estado</dt><dd className="font-semibold text-emerald-700">{worker.status ?? "Activo"}</dd></div>
+          </dl>
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-2">
-          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="grid gap-8 lg:grid-cols-2 lg:divide-x lg:divide-slate-200">
+          <section className="lg:pr-8">
             <h3 className="text-lg font-semibold text-slate-900">Pagos recibidos</h3>
-            <p className="text-sm text-slate-600">Últimos viáticos registrados por Tesorería.</p>
             {payments.length === 0 ? (
               <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
                 Todavía no hay pagos asociados a este legajo.
               </p>
             ) : (
-              <div className="mt-4 space-y-3">
+              <div className="mt-3 divide-y divide-slate-200 border-y border-slate-200">
                 {payments.map((entry) => (
                   <Link
                     key={entry.id}
                     href={`/solicitudes/${entry.requestVersion.request.id}`}
-                    className="flex items-center justify-between gap-4 rounded-xl border border-slate-100 p-3 transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+                    className="flex items-center justify-between gap-4 py-3.5 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
                   >
                     <div>
                       <p className="font-semibold text-slate-800">
@@ -160,21 +139,20 @@ export default async function ColaboradoresPage() {
                 ))}
               </div>
             )}
-          </article>
+          </section>
 
-          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <section className="lg:pl-8">
             <h3 className="text-lg font-semibold text-slate-900">Ajustes y movimientos</h3>
-            <p className="text-sm text-slate-600">Detalle de créditos y débitos de la cuenta.</p>
             {worker.balanceEntries.length === 0 ? (
               <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
                 No hay ajustes registrados.
               </p>
             ) : (
-              <div className="mt-4 space-y-3">
+              <div className="mt-3 divide-y divide-slate-200 border-y border-slate-200">
                 {worker.balanceEntries.map((entry) => (
                   <div
                     key={entry.id}
-                    className="flex items-center justify-between gap-4 rounded-xl border border-slate-100 p-3"
+                    className="flex items-center justify-between gap-4 py-3.5"
                   >
                     <div>
                       <p className="font-semibold text-slate-800">{entry.reason}</p>
@@ -197,8 +175,8 @@ export default async function ColaboradoresPage() {
                 ))}
               </div>
             )}
-          </article>
-        </section>
+          </section>
+        </div>
       </div>
     );
   }
@@ -207,6 +185,12 @@ export default async function ColaboradoresPage() {
     orderBy: { name: "asc" },
     include: { balanceEntries: true },
   });
+  const workerBalances = workers.map((worker) => calculateBalance(worker.balanceEntries));
+  const balancesToRegularize = workerBalances.filter((balance) => balance < 0).length;
+  const totalMovements = workers.reduce(
+    (total, worker) => total + worker.balanceEntries.length,
+    0,
+  );
 
   return (
     <div className="space-y-6">
@@ -223,19 +207,28 @@ export default async function ColaboradoresPage() {
         <WorkerCreateModal />
       </header>
 
+      <KpiStrip
+        label="Resumen de colaboradores"
+        items={[
+          { label: "Colaboradores", value: workers.length, tone: "sky" },
+          { label: "A regularizar", value: balancesToRegularize, tone: "amber" },
+          { label: "Movimientos", value: totalMovements, tone: "slate" },
+        ]}
+      />
+
       {workers.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
           No hay colaboradores registrados.
         </div>
       ) : (
         <>
-          <section aria-label="Colaboradores" className="space-y-3 md:hidden">
+          <section aria-label="Colaboradores" className="divide-y divide-slate-200 border-y border-slate-200 md:hidden">
             {workers.map((worker) => {
               const balance = calculateBalance(worker.balanceEntries);
               return (
                 <article
                   key={worker.id}
-                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                  className="py-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -273,9 +266,9 @@ export default async function ColaboradoresPage() {
             })}
           </section>
 
-          <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm md:block">
+          <div className="hidden overflow-x-auto border-y border-slate-200 md:block">
             <table className="w-full min-w-[760px] text-left text-sm">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <thead className="border-b border-slate-200 bg-slate-50/60 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Colaborador</th>
                   <th className="px-4 py-3">Legajo</th>

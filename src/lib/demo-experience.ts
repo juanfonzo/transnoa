@@ -26,10 +26,3 @@ export const navigationByRole: Record<DemoRole, DemoNavItem[]> = {
     { href: "/reportes", label: "Reportes" },
   ],
 };
-
-export const roleValueProposition: Record<DemoRole, string> = {
-  JEFE_AREA: "Creá, seguí y firmá las solicitudes de tu área.",
-  COLABORADOR: "Consultá tus pagos, ajustes y saldo de viáticos.",
-  ADMIN: "Validá solicitudes, resolvé correcciones y mantené las reglas operativas.",
-  TESORERIA: "Gestioná pagos y devoluciones con trazabilidad de cada operación.",
-};

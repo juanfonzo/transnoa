@@ -1,6 +1,7 @@
 "use client";
 
 import type { RequestStatus } from "@prisma/client";
+import Link from "next/link";
 import { useState } from "react";
 import { markPaid, requestCorrection } from "@/app/actions/requests";
 import { ActionFeedback } from "@/components/ActionFeedback";
@@ -14,6 +15,7 @@ type TreasuryActionsProps = {
   plannedPaymentDate?: Date | null;
   paidAt?: Date | null;
   paymentReference?: string | null;
+  detailHref?: string;
 };
 
 export function TreasuryActions({
@@ -22,6 +24,7 @@ export function TreasuryActions({
   plannedPaymentDate,
   paidAt,
   paymentReference,
+  detailHref,
 }: TreasuryActionsProps) {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [correctionOpen, setCorrectionOpen] = useState(false);
@@ -53,7 +56,7 @@ export function TreasuryActions({
 
   return (
     <>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {canPay && (
           <button
             type="button"
@@ -61,10 +64,18 @@ export function TreasuryActions({
               setPaymentError(null);
               setPaymentOpen(true);
             }}
-            className="min-h-10 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+            className="inline-flex min-h-10 items-center rounded-full bg-slate-900 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
           >
             {paymentLabel}
           </button>
+        )}
+        {detailHref && (
+          <Link
+            href={detailHref}
+            className="inline-flex min-h-10 items-center rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-slate-300 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+          >
+            Ver detalle
+          </Link>
         )}
         {canRequestCorrection && (
           <button
@@ -73,9 +84,9 @@ export function TreasuryActions({
               setCorrectionError(null);
               setCorrectionOpen(true);
             }}
-            className="min-h-10 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-slate-300 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+            className="inline-flex min-h-10 items-center rounded-full border border-rose-200 bg-rose-50/70 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-rose-700 transition hover:border-rose-300 hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700"
           >
-            Solicitar corrección
+            Devolver
           </button>
         )}
       </div>

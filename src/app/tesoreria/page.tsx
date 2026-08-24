@@ -3,6 +3,7 @@ import Link from "next/link";
 import { TreasuryActions } from "@/app/tesoreria/TreasuryActions";
 import { RoleAccessNotice } from "@/components/RoleAccessNotice";
 import { StatusPill } from "@/components/StatusPill";
+import { KpiStrip } from "@/components/KpiStrip";
 import { getDemoRole } from "@/lib/demo-auth";
 import { formatCurrency, formatDate, formatDateOnly } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -87,47 +88,35 @@ export default async function TesoreriaPage() {
         </div>
         <Link
           href="/reportes"
-          className="inline-flex min-h-11 items-center justify-center rounded-full border border-slate-200 px-5 py-2 text-xs font-semibold uppercase tracking-wide text-slate-700 transition hover:border-slate-300 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+          className="inline-flex min-h-11 self-start items-center justify-center rounded-full border border-slate-200 px-5 py-2 text-xs font-semibold uppercase tracking-wide text-slate-700 transition hover:border-slate-300 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 sm:self-auto"
         >
           Ver reportes
         </Link>
       </header>
 
-      <section aria-label="Resumen de Tesorería" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <article className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-            Listas para pagar
-          </p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">
-            {readyRows.length}
-          </p>
-          <p className="mt-1 text-sm font-medium text-slate-700">
-            {formatCurrency(readyAmount)}
-          </p>
-        </article>
-        <article className="rounded-2xl border border-sky-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">
-            Pagos registrados
-          </p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">
-            {paidRows.length}
-          </p>
-          <p className="mt-1 text-sm font-medium text-slate-700">
-            {formatCurrency(paidAmount)}
-          </p>
-        </article>
-        <article className="col-span-2 rounded-2xl border border-rose-200 bg-white p-4 shadow-sm sm:col-span-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-rose-700">
-            Con observaciones
-          </p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">
-            {returnedRows.length}
-          </p>
-          <p className="mt-1 text-sm text-slate-600">
-            En corrección por Administración
-          </p>
-        </article>
-      </section>
+      <KpiStrip
+        label="Resumen de Tesorería"
+        items={[
+          {
+            label: "Listas para pagar",
+            value: readyRows.length,
+            detail: formatCurrency(readyAmount),
+            tone: "emerald",
+          },
+          {
+            label: "Pagos registrados",
+            value: paidRows.length,
+            detail: formatCurrency(paidAmount),
+            tone: "sky",
+          },
+          {
+            label: "Con observaciones",
+            value: returnedRows.length,
+            detail: "En Administración",
+            tone: "rose",
+          },
+        ]}
+      />
 
       {rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center">
@@ -147,11 +136,11 @@ export default async function TesoreriaPage() {
             </p>
           </div>
 
-          <div className="space-y-3 md:hidden">
+          <div className="divide-y divide-slate-200 border-y border-slate-200 md:hidden">
             {rows.map(({ request, version, amount, lastCorrection }) => (
               <article
                 key={request.id}
-                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                className="py-4"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -196,35 +185,22 @@ export default async function TesoreriaPage() {
                   </p>
                 )}
                 <div className="mt-4 border-t border-slate-100 pt-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Link
-                      href={`/solicitudes/${request.id}`}
-                      className="inline-flex min-h-10 items-center rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
-                    >
-                      Ver trazabilidad
-                    </Link>
-                    {request.status === "TREASURY_RETURNED" ? (
-                      <p className="text-xs font-medium text-slate-500">
-                        Administración está preparando una nueva versión.
-                      </p>
-                    ) : (
-                      <TreasuryActions
-                        requestId={request.id}
-                        status={request.status}
-                        plannedPaymentDate={version?.plannedPaymentDate}
-                        paidAt={version?.payment?.paidAt}
-                        paymentReference={version?.payment?.paymentReference}
-                      />
-                    )}
-                  </div>
+                  <TreasuryActions
+                    requestId={request.id}
+                    status={request.status}
+                    plannedPaymentDate={version?.plannedPaymentDate}
+                    paidAt={version?.payment?.paidAt}
+                    paymentReference={version?.payment?.paymentReference}
+                    detailHref={`/solicitudes/${request.id}`}
+                  />
                 </div>
               </article>
             ))}
           </div>
 
-          <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm md:block">
+          <div className="hidden overflow-x-auto border-y border-slate-200 md:block">
             <table className="w-full min-w-[980px] text-left text-sm">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <thead className="border-b border-slate-200 bg-slate-50/60 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Solicitud</th>
                   <th className="px-4 py-3">Área</th>
@@ -260,25 +236,14 @@ export default async function TesoreriaPage() {
                       <StatusPill status={request.status} />
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Link
-                          href={`/solicitudes/${request.id}`}
-                          className="inline-flex min-h-10 items-center rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
-                        >
-                          Ver detalle
-                        </Link>
-                        {request.status === "TREASURY_RETURNED" ? (
-                          <span className="text-xs text-slate-500">En Administración</span>
-                        ) : (
-                          <TreasuryActions
-                            requestId={request.id}
-                            status={request.status}
-                            plannedPaymentDate={version?.plannedPaymentDate}
-                            paidAt={version?.payment?.paidAt}
-                            paymentReference={version?.payment?.paymentReference}
-                          />
-                        )}
-                      </div>
+                      <TreasuryActions
+                        requestId={request.id}
+                        status={request.status}
+                        plannedPaymentDate={version?.plannedPaymentDate}
+                        paidAt={version?.payment?.paidAt}
+                        paymentReference={version?.payment?.paymentReference}
+                        detailHref={`/solicitudes/${request.id}`}
+                      />
                     </td>
                   </tr>
                 ))}

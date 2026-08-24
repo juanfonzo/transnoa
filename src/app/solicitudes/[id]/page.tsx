@@ -7,7 +7,8 @@ import { RequestTimeline } from "@/app/solicitudes/[id]/RequestTimeline";
 import { TreasuryActions } from "@/app/tesoreria/TreasuryActions";
 import { RoleAccessNotice } from "@/components/RoleAccessNotice";
 import { StatusPill } from "@/components/StatusPill";
-import { dateOnlyKey, diffDateOnlyDaysInclusive } from "@/lib/date-only";
+import { KpiStrip } from "@/components/KpiStrip";
+import { dateOnlyKey } from "@/lib/date-only";
 import { getDemoRole } from "@/lib/demo-auth";
 import { formatCurrency, formatDateOnly, formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -128,15 +129,6 @@ export default async function RequestDetailPage({ params }: PageProps) {
     (sum, entry) => sum + Number(entry.netAmount),
     0,
   );
-  const completedRenditions = visibleWorkers.filter(
-    (entry) => entry.rendition && entry.rendition.legs.length > 0,
-  ).length;
-  const correctionRequests = request.versions.flatMap((version) =>
-    version.correctionRequests.map((correction) => ({
-      ...correction,
-      versionNumber: version.versionNumber,
-    })),
-  );
   const timeline = buildRequestTimeline({
     requestCreatedAt: request.createdAt,
     createdByName: request.createdBy.name,
@@ -193,9 +185,6 @@ export default async function RequestDetailPage({ params }: PageProps) {
     })),
   });
   const backRoute = backRoutes[role];
-  const totalDays = currentVersion
-    ? diffDateOnlyDaysInclusive(currentVersion.startDate, currentVersion.endDate)
-    : 0;
   const canAct =
     (role === "JEFE_AREA" && request.status === "PENDING_SIGNATURE") ||
     (role === "ADMIN" && actionableAdminStatuses.includes(request.status)) ||
@@ -211,7 +200,7 @@ export default async function RequestDetailPage({ params }: PageProps) {
         ← {backRoute.label}
       </Link>
 
-      <header className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+      <header>
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3">
@@ -263,44 +252,44 @@ export default async function RequestDetailPage({ params }: PageProps) {
           </section>
         </div>
 
-        <dl className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
-          <div className="rounded-2xl bg-slate-50 p-4">
-            <dt className="text-xs uppercase tracking-wide text-slate-500">Versión vigente</dt>
-            <dd className="mt-1 text-xl font-semibold text-slate-900">
-              v{currentVersion?.versionNumber ?? "-"}
-            </dd>
-          </div>
-          <div className="rounded-2xl bg-slate-50 p-4">
-            <dt className="text-xs uppercase tracking-wide text-slate-500">Período</dt>
-            <dd className="mt-1 text-sm font-semibold text-slate-900">
-              {formatDateOnly(currentVersion?.startDate)} – {formatDateOnly(currentVersion?.endDate)}
-            </dd>
-            <p className="mt-1 text-xs text-slate-500">{totalDays} día(s)</p>
-          </div>
-          <div className="rounded-2xl bg-slate-50 p-4">
-            <dt className="text-xs uppercase tracking-wide text-slate-500">Lote</dt>
-            <dd className="mt-1 text-sm font-semibold text-slate-900">
-              {currentVersion?.loteNumber ?? "Sin asignar"}
-            </dd>
-          </div>
-          <div className="rounded-2xl bg-slate-50 p-4">
-            <dt className="text-xs uppercase tracking-wide text-slate-500">Fecha prevista</dt>
-            <dd className="mt-1 text-sm font-semibold text-slate-900">
-              {formatDateOnly(currentVersion?.plannedPaymentDate)}
-            </dd>
-          </div>
-          <div className="col-span-2 rounded-2xl bg-slate-900 p-4 text-white lg:col-span-1">
-            <dt className="text-xs uppercase tracking-wide text-slate-300">
-              {role === "COLABORADOR" ? "Tu importe" : "Importe neto"}
-            </dt>
-            <dd className="mt-1 text-xl font-semibold">{formatCurrency(visibleAmount)}</dd>
-          </div>
-        </dl>
+        <KpiStrip
+          label="Resumen de la solicitud"
+          className="mt-6"
+          items={[
+            {
+              label: "Versión vigente",
+              value: `v${currentVersion?.versionNumber ?? "-"}`,
+              tone: "sky",
+            },
+            {
+              label: "Período",
+              value: `${formatDateOnly(currentVersion?.startDate)} – ${formatDateOnly(currentVersion?.endDate)}`,
+              valueClassName: "text-sm",
+            },
+            {
+              label: "Lote",
+              value: currentVersion?.loteNumber ?? "Sin asignar",
+              valueClassName: "text-base",
+            },
+            {
+              label: "Fecha prevista",
+              value: formatDateOnly(currentVersion?.plannedPaymentDate),
+              valueClassName: "text-base",
+              tone: "amber",
+            },
+            {
+              label: role === "COLABORADOR" ? "Tu importe" : "Importe neto",
+              value: formatCurrency(visibleAmount),
+              valueClassName: "text-xl",
+              tone: "emerald",
+            },
+          ]}
+        />
       </header>
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.75fr)]">
         <div className="space-y-6">
-          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <section className="border-t border-slate-200 pt-6">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -321,9 +310,9 @@ export default async function RequestDetailPage({ params }: PageProps) {
               </p>
             ) : (
               <>
-                <div className="mt-5 space-y-3 md:hidden">
+                <div className="mt-5 divide-y divide-slate-200 border-y border-slate-200 md:hidden">
                   {visibleWorkers.map((entry) => (
-                    <article key={entry.id} className="rounded-2xl border border-slate-200 p-4">
+                    <article key={entry.id} className="py-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="font-semibold text-slate-900">{entry.worker.name}</p>
@@ -348,9 +337,9 @@ export default async function RequestDetailPage({ params }: PageProps) {
                     </article>
                   ))}
                 </div>
-                <div className="mt-5 hidden overflow-x-auto rounded-2xl border border-slate-200 md:block">
+                <div className="mt-5 hidden overflow-x-auto border-y border-slate-200 md:block">
                   <table className="w-full min-w-[680px] text-left text-sm">
-                    <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <thead className="border-b border-slate-200 bg-slate-50/60 text-xs font-semibold uppercase tracking-wide text-slate-500">
                       <tr>
                         <th className="px-4 py-3">Colaborador</th>
                         <th className="px-4 py-3 text-right">Días</th>
@@ -383,13 +372,13 @@ export default async function RequestDetailPage({ params }: PageProps) {
             )}
           </section>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <section className="border-t border-slate-200 pt-6">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Agenda</p>
             <h2 className="mt-1 text-xl font-semibold text-slate-900">Conceptos por día</h2>
             {currentVersion?.dayConcepts.length ? (
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <div className="mt-5 divide-y divide-slate-200 border-y border-slate-200">
                 {currentVersion.dayConcepts.map((concept) => (
-                  <article key={concept.id} className="rounded-2xl border border-slate-200 p-4">
+                  <article key={concept.id} className="grid gap-2 py-3.5 sm:grid-cols-[10rem_1fr] sm:items-start">
                     <time
                       className="text-xs font-semibold uppercase tracking-wide text-slate-500"
                       dateTime={dateOnlyKey(concept.date)}
@@ -400,7 +389,7 @@ export default async function RequestDetailPage({ params }: PageProps) {
                         month: "short",
                       })}
                     </time>
-                    <p className="mt-2 text-sm font-medium leading-6 text-slate-800">
+                    <p className="text-sm font-medium leading-6 text-slate-800">
                       {concept.conceptText}
                     </p>
                   </article>
@@ -413,8 +402,8 @@ export default async function RequestDetailPage({ params }: PageProps) {
             )}
           </section>
 
-          <section className="grid gap-4 md:grid-cols-2" aria-label="Evidencias">
-            <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <section className="grid border-y border-slate-200 md:grid-cols-2 md:divide-x md:divide-slate-200" aria-label="Evidencias">
+            <article className="border-b border-slate-200 py-5 md:border-b-0 md:pr-6">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Evidencia de firma
               </p>
@@ -455,7 +444,7 @@ export default async function RequestDetailPage({ params }: PageProps) {
               )}
             </article>
 
-            <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <article className="py-5 md:pl-6">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Evidencia de pago
               </p>
@@ -491,87 +480,6 @@ export default async function RequestDetailPage({ params }: PageProps) {
             </article>
           </section>
 
-          <section className="grid gap-4 md:grid-cols-2">
-            <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-end justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Versionado
-                  </p>
-                  <h2 className="mt-1 text-lg font-semibold text-slate-900">Historial documental</h2>
-                </div>
-                <span className="text-sm text-slate-500">{request.versions.length}</span>
-              </div>
-              <div className="mt-4 space-y-3">
-                {request.versions.map((version, index) => (
-                  <div key={version.id} className="rounded-2xl border border-slate-200 p-4 text-sm">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="font-semibold text-slate-900">Versión {version.versionNumber}</p>
-                      {index === 0 && (
-                        <span className="rounded-full bg-sky-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-sky-800">
-                          Vigente
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {formatDateTime(version.createdAt)} · {version.createdBy.name}
-                    </p>
-                    <p className="mt-2 text-xs text-slate-600">
-                      {version.signature ? "Firmada" : "Sin firma"} · {version.payment ? "Pagada" : "Sin pago"}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </article>
-
-            <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-end justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Control
-                  </p>
-                  <h2 className="mt-1 text-lg font-semibold text-slate-900">Correcciones y rendiciones</h2>
-                </div>
-              </div>
-              <dl className="mt-4 grid grid-cols-2 gap-3">
-                <div className="rounded-2xl bg-slate-50 p-4">
-                  <dt className="text-xs text-slate-500">Correcciones</dt>
-                  <dd className="mt-1 text-xl font-semibold text-slate-900">
-                    {correctionRequests.length}
-                  </dd>
-                </div>
-                <div className="rounded-2xl bg-slate-50 p-4">
-                  <dt className="text-xs text-slate-500">Rendiciones completas</dt>
-                  <dd className="mt-1 text-xl font-semibold text-slate-900">
-                    {completedRenditions}/{visibleWorkers.length}
-                  </dd>
-                </div>
-              </dl>
-              {correctionRequests.length > 0 ? (
-                <div className="mt-4 space-y-3">
-                  {correctionRequests.map((correction) => (
-                    <div key={correction.id} className="rounded-2xl border border-rose-100 bg-rose-50 p-4 text-sm">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="font-semibold text-rose-900">Versión {correction.versionNumber}</p>
-                        <span className="text-xs font-semibold uppercase tracking-wide text-rose-700">
-                          {correction.status === "OPEN" ? "Abierta" : "Resuelta"}
-                        </span>
-                      </div>
-                      <p className="mt-2 leading-5 text-rose-800">{correction.reason}</p>
-                      <p className="mt-2 text-xs text-rose-700">
-                        {correction.requestedBy.name} · {formatDateTime(correction.requestedAt)}
-                        {correction.suggestedPaymentDate
-                          ? ` · Sugerida ${formatDateOnly(correction.suggestedPaymentDate)}`
-                          : ""}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-4 text-sm text-slate-500">No se solicitaron correcciones.</p>
-              )}
-            </article>
-          </section>
         </div>
 
         <div className="lg:sticky lg:top-6">

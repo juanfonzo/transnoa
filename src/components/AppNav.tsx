@@ -18,7 +18,7 @@ export function AppNav({ currentRole }: AppNavProps) {
       aria-label="Navegación principal"
       className="border-b border-slate-200/70 bg-white/90 backdrop-blur"
     >
-      <div className="mx-auto flex max-w-6xl items-center gap-2 overflow-x-auto px-4 py-3 text-sm font-medium text-slate-600 sm:px-6">
+      <div className="mx-auto flex max-w-7xl items-center gap-2 overflow-x-auto px-4 py-2.5 text-sm font-medium text-slate-600 sm:px-6">
         {navItems.map((item) => {
           const isActive =
             item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);

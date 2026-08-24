@@ -35,7 +35,7 @@ export default async function RootLayout({
         <div className="min-h-screen">
           <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-emerald-400 to-sky-500" />
           <header className="border-b border-slate-200/70 bg-white/90 backdrop-blur">
-            <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 sm:py-5">
+            <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
               <div className="flex items-center gap-4">
                 <div className="rounded-2xl bg-slate-900 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-white">
                   POC
@@ -56,7 +56,7 @@ export default async function RootLayout({
             </div>
           </header>
           <AppNav currentRole={role} />
-          <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+          <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-7">
             {children}
           </main>
         </div>

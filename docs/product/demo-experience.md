@@ -26,6 +26,7 @@ Presentar el circuito completo de viáticos con una responsabilidad clara por pe
 
 ## Jerarquía
 
+- Panel: sólo KPIs reales y útiles para el rol activo; sin explicación del flujo ni accesos duplicados.
 - Información primaria: estado, número de solicitud/lote, fechas, importe y próxima acción.
 - Acción primaria: la tarea pendiente propia del rol.
 - Acciones secundarias: seguimiento, edición permitida, detalle y exportación.
@@ -33,9 +34,10 @@ Presentar el circuito completo de viáticos con una responsabilidad clara por pe
 
 ## Componentes y patrones reutilizados
 
-- Shell, tarjetas, pills, `StatusPill`, `Modal`, `SubmitButton` y tonos actuales.
+- Shell amplio, franjas KPI, listas abiertas, pills, `StatusPill`, `Modal`, `SubmitButton` y tonos actuales.
+- Grupos de acciones con la operación principal primero, detalle como secundario y devolución diferenciada.
 - Estado de acceso insuficiente compartido para rutas fuera del perfil activo.
-- Tabla en ancho intermedio/amplio y tarjetas operativas en ancho compacto.
+- Tabla abierta en ancho intermedio/amplio y registros apilados con separadores en ancho compacto.
 
 ## Estados
 
@@ -48,9 +50,9 @@ Presentar el circuito completo de viáticos con una responsabilidad clara por pe
 
 ## Responsive
 
-- Compacto: shell reducido, navegación desplazable y registros como tarjetas con estado/acción visibles.
-- Intermedio: tablas con desplazamiento horizontal, sin cortar columnas ni acciones.
-- Amplio: tablas y paneles con densidad operativa dentro del ancho institucional.
+- Compacto: shell reducido, navegación desplazable, KPIs horizontales y registros abiertos con estado/acción visibles.
+- Intermedio: tablas con desplazamiento horizontal y separadores, sin cortar columnas ni acciones.
+- Amplio: KPIs en una línea y tablas abiertas con densidad operativa dentro del ancho institucional.
 
 ## Accesibilidad
 

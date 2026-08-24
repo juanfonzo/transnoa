@@ -3,6 +3,7 @@
   - Mantener un flujo reproducible de calidad y un despliegue Vercel/Neon seguro.
   - Elevar la demo a una experiencia comercial excelente que comunique valor, madurez y beneficios concretos para cada rol de Transnoa.
   - Mantener `vercel-build` no mutante para que la POC pueda desplegarse sólo con la conexión Neon de runtime.
+  - Rediseñar la interfaz para reemplazar cards métricas por KPIs compactos y mostrar listados abiertos con mayor densidad operativa.
 - Constraints/Assumptions:
   - Seguir `AGENTS.md`, mantener UTF-8 y cambios pequeños sin dependencias nuevas.
   - `F:\Repositorios\gesuite` es referencia estrictamente de sólo lectura.
@@ -18,8 +19,11 @@
   - La demo seguirá el requerimiento original: Tesorería registra pagos y solicita correcciones; Administración valida, estandariza y resuelve correcciones.
   - Vercel no ejecuta migraciones, `db push` ni seed; la Neon compartida de demo se sincroniza manualmente y antes del deploy cuando sea necesario.
   - El wrapper de migraciones se conserva para operaciones manuales futuras: prioriza `DIRECT_URL`, acepta `DATABASE_URL_UNPOOLED` y nunca usa una URL pooled como fallback silencioso.
+  - El rediseño preserva cards sólo para formularios, modales, estados excepcionales y acciones sensibles; KPIs y listados usan franjas y separadores sin sombra.
+  - El Panel queda reducido a KPIs reales por rol; no duplica explicación del flujo, selector de rol ni accesos operativos.
+  - La línea de tiempo es la única síntesis visual de versionado/control en el detalle; se eliminan los paneles finales redundantes.
 - State:
-  - Build de Vercel desacoplado de la base y verificado; listo para redeploy.
+  - Refinamiento de Panel, acciones y detalle implementado y verificado; listo para revisión del usuario.
 - Done:
   - Implementado el kit Dev IA adaptado: 14 skills, 6 agentes opcionales, políticas, routing, checks, hooks y CI.
   - Primer lote crítico implementado y aceptado con pruebas UI/DB (`REQ-0003`).
@@ -59,10 +63,20 @@
   - `vercel-build` ahora delega únicamente en `npm run build`; no ejecuta migraciones, `db push` ni seed.
   - Regresión de despliegue ampliada a 7/7 casos y `npm run vercel-build` completado sin `DIRECT_URL` ni `DATABASE_URL_UNPOOLED` en el proceso.
   - Verificación final del ajuste: `npm run verify` pasa con 15 pruebas de workflow, 7 de despliegue y 4 warnings de lint preexistentes.
+  - Implementado `KpiStrip` compartido y reemplazadas las cards métricas por franjas KPI en Solicitudes, Administración, Tesorería, Colaboradores y detalle.
+  - Bandejas, historiales, conceptos, versiones, evidencias, rendiciones y accesos del Panel usan listas/tablas abiertas con separadores; la contención queda reservada para formularios, modales, estados excepcionales y acciones sensibles.
+  - Shell operativo ampliado a `max-w-7xl` y contratos de producto alineados con la nueva densidad visual.
+  - QA final del rediseño en 390/768/1440 px y los cuatro roles: acciones visibles, modal con foco/Escape y consola 0 errores/0 warnings.
+  - Verificación del rediseño: `npm run verify`, UI strict, Prisma validate, diff check y `npm run vercel-build` pasan; persisten sólo los 4 warnings React ya documentados y reservados para el lote posterior.
+  - Panel simplificado para los cuatro roles con KPIs reales: circuito y montos del área, colas de Administración, pagos de Tesorería y saldo personal.
+  - Acciones reordenadas en Jefatura, Administración y Tesorería: operación primaria sólida, detalle secundario y devolución diferenciada en rose.
+  - Eliminados del detalle los bloques finales `Historial documental` y `Correcciones y rendiciones`; evidencias y timeline permanecen intactos.
+  - QA en 390/768/1440 px: cuatro Paneles, bandejas, detalle y modal de pago; consola final 0 errores/0 warnings.
+  - Verificación del refinamiento: `npm run verify`, UI strict, Prisma validate y diff check pasan; se mantienen los 4 warnings React reservados para el lote posterior.
 - Now:
-  - Handoff del ajuste de despliegue no mutante.
+  - Esperar revisión visual del Panel y la nueva jerarquía de acciones.
 - Next:
-  - Redeploy en Vercel con sólo `DATABASE_URL` y comprobar la demo.
+  - Retomar el backlog funcional acordado, comenzando por la aplicación automática de cuenta corriente en nuevas solicitudes.
 - Open questions (UNCONFIRMED if needed):
   - Ninguna para el redeploy actual; una etapa productiva requerirá ambientes separados y un pipeline explícito de migraciones.
 - Working set (files/ids/commands):
@@ -74,4 +88,5 @@
   - Roles: `src/app/{solicitudes,administracion,tesoreria,colaboradores,reportes}/`, `src/app/actions/requests.ts`.
   - Datos demo: `prisma/seed.js` (`REQ-1001` a `REQ-1007`).
   - Detalle: `src/app/solicitudes/[id]/`, `src/lib/request-timeline.ts`, `docs/product/request-detail-experience.md`.
+  - Rediseño compacto: `docs/product/dense-interface-redesign.md`, páginas por rol y componentes visuales compartidos.
   - Validación: `npm run verify`, `npm run kit:ui-check:strict`, `npm run prisma:validate`, `npx next build`, Playwright y `npm run db:seed`.

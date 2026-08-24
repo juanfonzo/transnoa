@@ -26,13 +26,13 @@ La jerarquía y los componentes reutilizan las bandejas de Solicitudes, Administ
 
 - información primaria: número, estado, área, período, versión vigente, lote, fecha prevista e importe visible para el rol;
 - acción primaria: la acción pendiente del rol activo;
-- acciones secundarias: volver a la bandeja correspondiente y recorrer versiones/evidencias;
-- trazabilidad: línea de tiempo cronológica, sin exponer el JSON técnico de auditoría.
+- acciones secundarias: volver a la bandeja correspondiente y consultar contenido/evidencias;
+- trazabilidad: línea de tiempo cronológica como única síntesis de versiones y control, sin paneles redundantes ni JSON técnico de auditoría.
 
 ## Componentes Y Patrones Reutilizados
 
-- shell `max-w-6xl`, cards blancas, bordes slate, radios amplios y tonos semánticos existentes;
-- `StatusPill`, pills de metadatos, tablas con alternativa móvil y acciones actuales;
+- shell `max-w-7xl`, franja KPI y secciones abiertas separadas por ritmo y bordes slate;
+- `StatusPill`, pills de metadatos, tablas abiertas con alternativa móvil y acciones actuales;
 - enlaces reales para abrir el detalle desde cada bandeja.
 
 ## Estados
@@ -46,8 +46,8 @@ La jerarquía y los componentes reutilizan las bandejas de Solicitudes, Administ
 
 ## Responsive
 
-- compacto: resumen apilado, colaboradores en cards, agenda y timeline en una columna;
-- intermedio: métricas en dos columnas y secciones de evidencia en paralelo;
+- compacto: franja KPI desplazable, colaboradores separados por filas, agenda y timeline en una columna;
+- intermedio: métricas horizontales y secciones de evidencia en paralelo;
 - amplio: contenido principal más timeline lateral persistente en el flujo de lectura.
 
 ## Accesibilidad

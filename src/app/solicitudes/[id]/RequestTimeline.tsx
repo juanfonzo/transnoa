@@ -11,7 +11,7 @@ const toneClasses: Record<RequestTimelineTone, string> = {
 
 export function RequestTimeline({ events }: { events: RequestTimelineEvent[] }) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+    <section className="border-t border-slate-200 pt-6 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         Trazabilidad
       </p>
